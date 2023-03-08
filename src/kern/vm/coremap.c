@@ -37,6 +37,9 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 /* spinlock for mutual esclusive access to ram_stealmem */
 static struct spinlock freemem_lock = SPINLOCK_INITIALIZER;
 
+/*Number of frames*/
+static int nRamframes = 10;
+
 
 
 static int isTableActive () {
@@ -52,8 +55,13 @@ static int isTableActive () {
 void vm_bootstrap(void)         /*ADDED*/
 {
         /*Computation of available free frames number in RAM*/
-        int nRamFrames = ((int)ram_getsize())/PAGE_SIZE;
+        int nRamFramesMAX = ((int)ram_getsize())/PAGE_SIZE;
         //*stack = kmalloc(sizeof(int)*nRamFrames);
+
+        if(nRamframes > nRamFramesMAX){
+          kprintf("nRamFrames is higher than nRamFramesMAX. Change the number of Frames!\n");
+          return;
+        }
 
         /*alloco il vettore freeRamFrame inizializzato a 0 (vuoto)*/
         freeRamFrames = kmalloc(sizeof(unsigned char)*nRamFrames);
