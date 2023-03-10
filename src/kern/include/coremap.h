@@ -7,9 +7,9 @@
 
 /*structure*/
 void vm_bootstrap(void);
-vaddr_t alloc_kpages(unsigned npages);
-void free_kpages(vaddr_t addr);
-paddr_t getppages(unsigned long npages);
+// vaddr_t alloc_kpages(unsigned npages);
+// void free_kpages(vaddr_t addr);
+// paddr_t getppages(unsigned long npages);
 
 
 

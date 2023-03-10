@@ -214,6 +214,67 @@ struct kheap_root {
 
 static struct kheap_root kheaproots[NUM_PAGEREFPAGES];
 
+////////////////////////////////////////////////////////////////////
+
+/*
+ * Wrap ram_stealmem in a spinlock.
+ */
+static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
+
+paddr_t
+getppages(unsigned long npages)
+{
+	paddr_t addr;
+
+	spinlock_acquire(&stealmem_lock);
+
+	addr = ram_stealmem(npages);
+
+	spinlock_release(&stealmem_lock);
+	return addr;
+}
+
+void 
+freeppages(paddr_t addr) 
+{
+	spinlock_acquire(&stealmem_lock);
+
+	ram_freemem(addr);
+
+	spinlock_release(&stealmem_lock);
+
+}
+
+/* Allocate/free some kernel-space virtual pages */
+vaddr_t
+alloc_kpages(unsigned npages)
+{
+	paddr_t pa;
+
+	//dumbvm_can_sleep(); <----- needed?
+	pa = getppages(npages);
+	if (pa == 0)
+	{
+		return 0;
+	}
+	return PADDR_TO_KVADDR(pa);
+}
+
+void 
+free_kpages(vaddr_t addr)
+{
+	paddr_t pa = addr - MIPS_KSEG0;
+
+	//dumbvm_can_sleep(); <----- needed?
+	freeppages(pa);
+
+	return;
+}
+
+////////////////////////////////////////////////////////////////////
+
+
+
 /*
  * Allocate a page to hold pagerefs.
  */
@@ -1226,57 +1287,3 @@ kfree(void *ptr)
 
 /* ---------------------------------------- UPDATES BELOW THIS LINE --------------------------------------------- */
 
-/*
- * Wrap ram_stealmem in a spinlock.
- */
-static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
-
-paddr_t
-getppages(unsigned long npages)
-{
-	paddr_t addr;
-
-	spinlock_acquire(&stealmem_lock);
-
-	addr = ram_stealmem(npages);
-
-	spinlock_release(&stealmem_lock);
-	return addr;
-}
-
-void 
-freeppages(paddr_t addr) 
-{
-	spinlock_acquire(&stealmem_lock);
-
-	ram_freemem(addr);
-
-	spinlock_release(&stealmem_lock);
-
-}
-
-/* Allocate/free some kernel-space virtual pages */
-vaddr_t
-alloc_kpages(unsigned npages)
-{
-	paddr_t pa;
-
-	//dumbvm_can_sleep(); <----- needed?
-	pa = getppages(npages);
-	if (pa == 0)
-	{
-		return 0;
-	}
-	return PADDR_TO_KVADDR(pa);
-}
-
-void 
-free_kpages(vaddr_t addr)
-{
-	paddr_t pa = addr - MIPS_KSEG0;
-
-	//dumbvm_can_sleep(); <----- needed?
-	freeppages(pa);
-
-	return;
-}

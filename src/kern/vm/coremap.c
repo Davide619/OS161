@@ -14,66 +14,66 @@
 #include <addrspace.h>
 
 /* list of free frames (0 -> busy, 1 -> freed) */
-static unsigned char *freeRamFrames = NULL;
+//static unsigned char *freeRamFrames = NULL;
 
 /* number of frames allocated from the corresponding frame. 
  * If it is a kernel page knowing this is necessary when
  * the allocated space should be freed.
  */
-static unsigned long *allocSize = NULL;
+// static unsigned long *allocSize = NULL;
 
 /* number of frames present inside the RAM */
-static int nRamFrames = 0;
+//static int nRamFrames = 0;
 
 /*pinter to the freeFrameList structure*/
 static struct ffl * freeFrameList;
 
 /* Set if vm_bootstrap is called */
-static int allocTableActive = 0;
+//static int allocTableActive = 0;
 
 /* spinlock for mutual esclusive access to ram_stealmem */
-static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
+// static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
-/* spinlock for mutual esclusive access to ram_stealmem */
-static struct spinlock freemem_lock = SPINLOCK_INITIALIZER;
+// /* spinlock for mutual esclusive access to ram_stealmem */
+// static struct spinlock freemem_lock = SPINLOCK_INITIALIZER;
 
 /*Number of frames*/
-static int nRamframes = 10;
+static int nRamFrames = 10;
 
 
 
-static int isTableActive () {
-  int active;
-  spinlock_acquire(&freemem_lock);
-  active = allocTableActive;
-  spinlock_release(&freemem_lock);
-  return active;
-}
+// static int isTableActive () {
+//   int active;
+//   spinlock_acquire(&freemem_lock);
+//   active = allocTableActive;
+//   spinlock_release(&freemem_lock);
+//   return active;
+// }
 
 
 
 void vm_bootstrap(void)         /*ADDED*/
 {
-        /*Computation of available free frames number in RAM*/
-        int nRamFramesMAX = ((int)ram_getsize())/PAGE_SIZE;
-        //*stack = kmalloc(sizeof(int)*nRamFrames);
+        // /*Computation of available free frames number in RAM*/
+        // int nRamFramesMAX = ((int)ram_getsize())/PAGE_SIZE;
+        // //*stack = kmalloc(sizeof(int)*nRamFrames);
 
-        if(nRamframes > nRamFramesMAX){
-          kprintf("nRamFrames is higher than nRamFramesMAX. Change the number of Frames!\n");
-          return;
-        }
+        // if(nRamframes > nRamFramesMAX){
+        //   kprintf("nRamFrames is higher than nRamFramesMAX. Change the number of Frames!\n");
+        //   return;
+        // }
 
-        /*alloco il vettore freeRamFrame inizializzato a 0 (vuoto)*/
-        freeRamFrames = kmalloc(sizeof(unsigned char)*nRamFrames);
-        if (freeRamFrames==NULL) return; 
+        // /*alloco il vettore freeRamFrame inizializzato a 0 (vuoto)*/
+        // freeRamFrames = kmalloc(sizeof(unsigned char)*nRamFrames);
+        // if (freeRamFrames==NULL) return; 
         
         /*alloco allocSize*/
-        allocSize = kmalloc(sizeof(unsigned long)*nRamFrames);
-        if (allocSize==NULL){
-                //reset to disable this vm management 
-                freeRamFrames = NULL; 
-                return;
-        }
+        // allocSize = kmalloc(sizeof(unsigned long)*nRamFrames);
+        // if (allocSize==NULL){
+        //         //reset to disable this vm management 
+        //         freeRamFrames = NULL; 
+        //         return;
+        // }
 
         /*alloco la struttura FreeFrameList*/
         freeFrameList = ffl_create(nRamFrames);
@@ -83,137 +83,137 @@ void vm_bootstrap(void)         /*ADDED*/
         }
 
         /*inizializzo la struttura*/
-        ffl_init(*freeFrameList, nRamFrames);
+        ffl_init(&freeFrameList, nRamFrames);
 
-        for (int i=0; i<nRamFrames; i++){
-                freeRamFrames[i] = (unsigned char)0;
-                allocSize[i] =0;
-        }
+        // for (int i=0; i<nRamFrames; i++){
+        //         freeRamFrames[i] = (unsigned char)0;
+        //         allocSize[i] =0;
+        // }
         
-        spinlock_acquire(&freemem_lock);
-        allocTableActive = 1;
-        spinlock_release(&freemem_lock);
+        // spinlock_acquire(&freemem_lock);
+        // allocTableActive = 1;
+        // spinlock_release(&freemem_lock);
 }
 
 
 
-static paddr_t 
-getfreeppages(unsigned long npages) {
-  paddr_t addr;	
-  long i, first, found, np = (long)npages;
+// static paddr_t 
+// getfreeppages(unsigned long npages) {
+//   paddr_t addr;	
+//   long i, first, found, np = (long)npages;
 
-  if (!isTableActive()) return 0; 
-  spinlock_acquire(&freemem_lock);
-  for (i=0,first=found=-1; i<nRamFrames; i++) {
-    if (freeRamFrames[i]) {
-      if (i==0 || !freeRamFrames[i-1]) 
-        first = i; /* set first free in an interval */  
-      if (i-first+1 >= np) {
-        found = first;
-        break;
-      }
-    }
-  }
+//   if (!isTableActive()) return 0; 
+//   spinlock_acquire(&freemem_lock);
+//   for (i=0,first=found=-1; i<nRamFrames; i++) {
+//     if (freeRamFrames[i]) {
+//       if (i==0 || !freeRamFrames[i-1]) 
+//         first = i; /* set first free in an interval */  
+//       if (i-first+1 >= np) {
+//         found = first;
+//         break;
+//       }
+//     }
+//   }
 	
-  if (found>=0) {
-    for (i=found; i<found+np; i++) {
-      freeRamFrames[i] = (unsigned char)0;
-    }
-    allocSize[found] = np;
-    addr = (paddr_t) found*PAGE_SIZE;
-  }
-  else {
-    addr = 0;
-  }
+//   if (found>=0) {
+//     for (i=found; i<found+np; i++) {
+//       freeRamFrames[i] = (unsigned char)0;
+//     }
+//     allocSize[found] = np;
+//     addr = (paddr_t) found*PAGE_SIZE;
+//   }
+//   else {
+//     addr = 0;
+//   }
 
-  spinlock_release(&freemem_lock);
+//   spinlock_release(&freemem_lock);
 
-  return addr;
-}
+//   return addr;
+// }
  
 
 
-paddr_t
-getppages(unsigned long npages)
-{
-  paddr_t addr;
+// paddr_t
+// getppages(unsigned long npages)
+// {
+//   paddr_t addr;
 
-  /* try freed pages first */
-  addr = getfreeppages(npages);
-  if (addr == 0) {
-    /* call stealmem */
-    spinlock_acquire(&stealmem_lock);
-    addr = ram_stealmem(npages);
-    spinlock_release(&stealmem_lock);
-  }
-  if (addr!=0 && isTableActive()) {
-    spinlock_acquire(&freemem_lock);
-    allocSize[addr/PAGE_SIZE] = npages;
-    spinlock_release(&freemem_lock);
-  } 
+//   /* try freed pages first */
+//   addr = getfreeppages(npages);
+//   if (addr == 0) {
+//     /* call stealmem */
+//     spinlock_acquire(&stealmem_lock);
+//     addr = ram_stealmem(npages);
+//     spinlock_release(&stealmem_lock);
+//   }
+//   if (addr!=0 && isTableActive()) {
+//     spinlock_acquire(&freemem_lock);
+//     allocSize[addr/PAGE_SIZE] = npages;
+//     spinlock_release(&freemem_lock);
+//   } 
 
-  return addr;
-}
+//   return addr;
+// }
 
 
 
-static int 
-freeppages(paddr_t addr, unsigned long npages){
-  long i, first, np=(long)npages;	
+// static int 
+// freeppages(paddr_t addr, unsigned long npages){
+//   long i, first, np=(long)npages;	
 
-  if (!isTableActive()) return 0; 
+//   if (!isTableActive()) return 0; 
 
-  /* compute page index */
-  first = addr/PAGE_SIZE;
-  KASSERT(allocSize!=NULL);
-  KASSERT(nRamFrames>first);
+//   /* compute page index */
+//   first = addr/PAGE_SIZE;
+//   KASSERT(allocSize!=NULL);
+//   KASSERT(nRamFrames>first);
 
-  /* update freeRamFrame structure in mutual esclusion */ 
-  spinlock_acquire(&freemem_lock);
-  for (i=first; i<first+np; i++) {
-    freeRamFrames[i] = (unsigned char)1;
-  }
-  spinlock_release(&freemem_lock);
+//   /* update freeRamFrame structure in mutual esclusion */ 
+//   spinlock_acquire(&freemem_lock);
+//   for (i=first; i<first+np; i++) {
+//     freeRamFrames[i] = (unsigned char)1;
+//   }
+//   spinlock_release(&freemem_lock);
 
-  return 1;
-}
+//   return 1;
+// }
 
 
 
 /* Allocate/free some kernel-space virtual pages */
-vaddr_t
-alloc_kpages(unsigned npages)
-{
-	paddr_t pa;
+// vaddr_t
+// alloc_kpages(unsigned npages)
+// {
+// 	paddr_t pa;
 
-	//vm_can_sleep();
-	pa = getppages(npages);
-	if (pa==0) {
-		return 0;
-	}
-	return PADDR_TO_KVADDR(pa);
-}
+// 	//vm_can_sleep();
+// 	pa = getppages(npages);
+// 	if (pa==0) {
+// 		return 0;
+// 	}
+// 	return PADDR_TO_KVADDR(pa);
+// }
 
 
 
-void
-free_kpages(vaddr_t addr)
-{
-  /* control that the initialization was performed */
-	if (isTableActive()) {
+// void
+// free_kpages(vaddr_t addr)
+// {
+//   /* control that the initialization was performed */
+// 	if (isTableActive()) {
 
-    /* retain paddr from kernel vaddr */
-    	paddr_t paddr = addr - MIPS_KSEG0;
+//     /* retain paddr from kernel vaddr */
+//     	paddr_t paddr = addr - MIPS_KSEG0;
 
-      /*compute page index*/
-    	long first = paddr/PAGE_SIZE;	
-    	KASSERT(allocSize!=NULL);
-    	KASSERT(nRamFrames>first);
+//       /*compute page index*/
+//     	long first = paddr/PAGE_SIZE;	
+//     	KASSERT(allocSize!=NULL);
+//     	KASSERT(nRamFrames>first);
       
-    	freeppages(paddr, allocSize[first]);	
-  	}
+//     	freeppages(paddr, allocSize[first]);	
+//   	}
 
-}
+// }
 
 
 

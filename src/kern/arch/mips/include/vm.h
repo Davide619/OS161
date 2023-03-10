@@ -110,6 +110,11 @@ paddr_t ram_stealmem(unsigned long npages);
 int ram_freemem(paddr_t paddr);
 paddr_t ram_getsize(void);
 paddr_t ram_getfirstfree(void);
+paddr_t getppages(unsigned long npages);
+void freeppages(paddr_t addr);
+void free_kpages(vaddr_t addr);
+vaddr_t alloc_kpages(unsigned npages);
+
 
 /*
  * TLB shootdown bits.
