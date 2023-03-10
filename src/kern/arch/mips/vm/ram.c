@@ -196,7 +196,7 @@ static paddr_t lastpaddr;   /* one past end of last free physical page */
 static struct bitmap * frame_alloc; /* bitmap tracking allocated RAM frames */
 static uint8_t * alloc_size; /* array related to bitmap, storing number of contiguous allocated frames */
 static paddr_t start_frame; /* reference frame address */
-size_t nframes; /* amount of available RAM frames */
+static size_t nframes; /* amount of available RAM frames */
 
 static bool ram_initialized = false; /* to start doing RAM management after ram_bootstrap completed */
 
@@ -308,7 +308,7 @@ ram_stealmem(unsigned long npages)
 		 * frames that are all unmarked; this group should contain at least 
 		 * "npages" frames to be allocated, otherwise it isn't wide enough
 		 */
-		for(alloc_idx = 1; alloc_idx < nframes; alloc_idx++) {
+		for( ; alloc_idx < nframes; ++alloc_idx) {
 
 			/* check that the current frame is free... */
 			if(!bitmap_isset(frame_alloc, alloc_idx)) {
