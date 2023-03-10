@@ -83,7 +83,7 @@ void vm_bootstrap(void)         /*ADDED*/
         }
 
         /*inizializzo la struttura*/
-        ffl_init(freeFrameList, nRamFrames);
+        ffl_init(*freeFrameList, nRamFrames);
 
         for (int i=0; i<nRamFrames; i++){
                 freeRamFrames[i] = (unsigned char)0;
