@@ -193,13 +193,12 @@ vaddr_t firstfree;   /* first free virtual address; set by start.S */
 static paddr_t firstpaddr;  /* address of first free physical page */
 static paddr_t lastpaddr;   /* one past end of last free physical page */
 
-static struct bitmap * frame_list; /* bitmap tracking free RAM frames */
-static uint8_t * frame_size; /* array related to bitmap, storing number of contiguous allocated frames */
+static struct bitmap * frame_alloc; /* bitmap tracking allocated RAM frames */
+static uint8_t * alloc_size; /* array related to bitmap, storing number of contiguous allocated frames */
 static paddr_t start_frame; /* reference frame address */
 static size_t nframes; /* amount of available RAM frames */
-static uint8_t idx; /* current frame_list index */
 
-static bool vm_initialized = false; /* to start doing VM management after ram_bootstrap completed */
+static bool ram_initialized = false; /* to start doing RAM management after ram_bootstrap completed */
 
 /*
  * Called very early in system boot to figure out how much physical
@@ -230,36 +229,33 @@ ram_bootstrap(void)
 	 * Get first free virtual address from where start.S saved it.
 	 * Convert to physical address.
 	 */
-	firstpaddr = firstfree - MIPS_KSEG0;
+	firstpaddr = firstfree - MIPS_KSEG0; 
 
 	kprintf("%uk physical memory available\n",
 		(lastpaddr-firstpaddr)/1024); /* prints amount of memory in kB format */
 
-	DEBUGASSERT((firstpaddr % PAGE_SIZE) == 0); /* check if it's really a PAGE_SIZE multiple */
+	KASSERT((firstpaddr % PAGE_SIZE) == 0); /* check if it's really a PAGE_SIZE multiple */
 
-	/* 
-	 * Allocate the proper space for the two vectors...
+	/* Allocate the proper space for frame_alloc & alloc_size...
 	 */
-	nframes = (lastpaddr - firstpaddr) / PAGE_SIZE;
-	frame_list = bitmap_create(nframes);
-	frame_size = kmalloc(nframes);
+	nframes = (lastpaddr - firstpaddr) / PAGE_SIZE; // C5 (hex), 197 (dec)
+	frame_alloc = bitmap_create(nframes); // 25 bytes + 2 bytes for struct allocation
+	alloc_size = kmalloc(nframes); // 197 bytes
+	// 197 + 27 = 224 bytes allocated: just one page needed to handle frame_alloc & alloc_size
 
-	/* 
-	 * ...then initialize them...
+	/* ...then initialize alloc_size...
 	 */
-	bzero((void *) frame_size, nframes);
+	bzero((void *) alloc_size, nframes);
 	start_frame = firstpaddr;
 
-	/*
-	 * ...and mark the first page as allocated: we reserved space
-	 *	  for ram_manager vectors 
+	/* ...and mark the first page as allocated: we reserved space
+	 *	  for frame_alloc & alloc_size structures
 	 */
-	bitmap_mark(frame_list, idx);
-	frame_size[idx] = 1;
-	frame_size[++idx] = --nframes;
+	bitmap_mark(frame_alloc, 0);
+	alloc_size[0] = 1;
 
-	/* finally, set vm_initialized: the VM sistem is ready */
-	vm_initialized = true;
+	/* finally, set ram_initialized: the RAM management system is ready */
+	ram_initialized = true;
 }
 
 /*
@@ -292,25 +288,64 @@ ram_stealmem(unsigned long npages)
 		return 0;
 	}
 
-	paddr = firstpaddr;
-	firstpaddr += size;
+	/* Allocation before ram_bootstrap start to execute 
+	 */
+	if(!ram_initialized) {
+		paddr = firstpaddr;
+		firstpaddr += size;
+	}
 
-	/* 
-	 * Apply RAM management only if VM is initialized, that is 
-	 * only if ram_bootstrap finished execution
+	/* Apply RAM management only if the RAM management system is initialized, 
+	 * that is only if ram_bootstrap finished execution
 	 */ 
-	if(vm_initialized) {
-		/* mark the first page among the npages requested */
-		bitmap_mark(frame_list, idx);
+	else {
+		uint8_t alloc_idx = 1; /* index to traverse frame_alloc and find a free region to reserve */
+		uint8_t free_frames = 0; /* counts the number of contiguous free frames*/
 
-		/* set the number of pages requested */
-		frame_size[idx] = npages;
+		/* loop to traverse all the bitmap structure, it's necessary to find
+		 * a contiguous region of frames wide enough to be allocated: a free
+		 * frame is unmarked, so it's sufficient to find a group of contiguous
+		 * frames that are all unmarked; this group should contain at least 
+		 * "npages" frames to be allocated, otherwise it isn't wide enough
+		 */
+		for( ; alloc_idx < nframes; ++alloc_idx) {
 
-		/* update idx/npages */
-		idx += npages; nframes -= npages;
+			/* check that the current frame is free... */
+			if(!bitmap_isset(frame_alloc, alloc_idx)) {
+
+				/* ...increment the free frames counter... */
+				free_frames++;
+
+				/* ...and finally check if the contiguous free frames
+				 *    are equal to the requested pages to be allocated:
+				 *    in this case the region to be reserved has been found
+				 */
+				if(free_frames == npages) {
+					alloc_idx -= free_frames - 1;
+					break;
+				}
+			}
+			/* ...otherwise reset the count for free frames and go on */
+			else
+			{
+				free_frames = 0;
+			}
+		}
+
+		KASSERT(alloc_idx < nframes);
+
+
+
+		/* finally, reserve the frames and update the allocated size
+		 * related to the requested region...
+		 */
+		for (uint8_t i = 0; i < npages; ++i)
+			bitmap_mark(frame_alloc, alloc_idx + i);
 		
-		/* save the available free frames */
-		frame_size[idx] = nframes;
+		alloc_size[alloc_idx] = npages;
+
+		/* ...and evaluate the physical address to be returned */
+		paddr = start_frame + alloc_idx * PAGE_SIZE;
 	}
 
 	return paddr;
@@ -318,34 +353,24 @@ ram_stealmem(unsigned long npages)
 
 /*
  * This function is for deallocating memory pages upon request, after 
- * calling this function the page address is freed while the current idx
- * and the available nframes are updated.
- * IMPORTANT: for a proper execution of the function, it is necessary to
- * deallocate the structures in opposite order, with respect to the
- * allocation order.
+ * calling this function the reserved frames are freed
  */
 int
 ram_freemem(paddr_t paddr) 
 {
-	uint8_t tmp_idx, ret;
+	uint8_t free_idx, freed_frames;
 
 	/* find the index entry related to paddr, to access the bitmap 
 	 * and reset that entry
 	 */
-	tmp_idx = (paddr - start_frame) / PAGE_SIZE;
-	bitmap_unmark(frame_list, tmp_idx);
-	
-	/* reset the current position of idx as well, and update both
-	 * idx and nframes in order to point to the entry just freed
-	 */
-	frame_size[idx] = 0;
-	idx -= frame_size[tmp_idx]; nframes += frame_size[tmp_idx];
-	
-	/* finally update frame_size with the current available frames */
-	ret = frame_size[idx];
-	frame_size[idx] = nframes;
+	free_idx = (paddr - start_frame) / PAGE_SIZE;
+	freed_frames = alloc_size[free_idx];
+	alloc_size[free_idx] = 0;
 
-	return ret;
+	for (uint8_t i = 0; i < freed_frames; ++i) 
+		bitmap_unmark(frame_alloc, free_idx+i);
+
+	return freed_frames;
 }
 
 /*
