@@ -361,19 +361,19 @@ as_prepare_load2(struct addrspace *as)
 
 
         /* Initialize the stack */
-        as->padd_stack = getppages(STACKPAGES);
-        if(as->padd_stack == 0){
-                kprintf("Warning: Stack allocation failed\n");
-                return ENOMEM;
-        }
+        // as->padd_stack = getppages(STACKPAGES);
+        // if(as->padd_stack == 0){
+        //         kprintf("Warning: Stack allocation failed\n");
+        //         return ENOMEM;
+        // }
 
 
-        /*Frames allocations*/
-        as->as_frames = getppages(NFRAMES);     //alloco un numero fisso di frames
-        if (as->as_frames == 0) {
-                kprintf("Warning: Frames allocation failed\n");
-                return ENOMEM;          
-        }
+        // /*Frames allocations*/
+        // as->as_frames = getppages(NFRAMES);     //alloco un numero fisso di frames
+        // if (as->as_frames == 0) {
+        //         kprintf("Warning: Frames allocation failed\n");
+        //         return ENOMEM;          
+        // }
 
 
         as_zero_region(as->as_frames, NFRAMES);
