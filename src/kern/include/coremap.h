@@ -3,7 +3,7 @@
 
 #include <types.h>
 #include <lib.h>
-#include <vm.h> 
+#include <vm.h>
 
 /*structure*/
 void vm_bootstrap(void);

@@ -26,7 +26,7 @@
 //static int nRamFrames = 0;
 
 /*pinter to the freeFrameList structure*/
-static struct ffl * freeFrameList;
+struct ffl * freeFrameList;
 
 /* Set if vm_bootstrap is called */
 //static int allocTableActive = 0;
@@ -36,9 +36,6 @@ static struct ffl * freeFrameList;
 
 // /* spinlock for mutual esclusive access to ram_stealmem */
 // static struct spinlock freemem_lock = SPINLOCK_INITIALIZER;
-
-/*Number of frames*/
-static int nRamFrames = 10;
 
 
 
@@ -75,15 +72,15 @@ void vm_bootstrap(void)         /*ADDED*/
         //         return;
         // }
 
-        /*alloco la struttura FreeFrameList*/
-        freeFrameList = ffl_create(nRamFrames);
-        if(freeFrameList == NULL){ 
-          kprintf("FreeFrameList structure is not allocated!\n");
-          return;
-        }
+        // /*alloco la struttura FreeFrameList*/
+        // as->freeFrameList = ffl_create(nRamFrames);
+        // if(as->freeFrameList == NULL){ 
+        //   kprintf("FreeFrameList structure is not allocated!\n");
+        //   return;
+        // }
 
-        /*inizializzo la struttura*/
-        ffl_init(&freeFrameList, nRamFrames);
+        // /*inizializzo la struttura*/
+        // ffl_init(&freeFrameList, nRamFrames);
 
         // for (int i=0; i<nRamFrames; i++){
         //         freeRamFrames[i] = (unsigned char)0;
@@ -239,6 +236,9 @@ struct ffl * ffl_create(const uint8_t nframes)
 void ffl_init(struct ffl ** ffl_init, uint8_t nframes)
 {
     paddr_t cur_frame = start_frame = getppages(nframes);
+
+    // initialize to zero the user program frames
+    bzero((void *)PADDR_TO_KVADDR(start_frame), nframes * PAGE_SIZE);
     
     (*ffl_init)->free_frame = cur_frame;
     while((*ffl_init)->next != NULL)

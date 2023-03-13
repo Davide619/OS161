@@ -55,13 +55,6 @@
 #include <test.h>
 //////////////////////////
 
-
-#define NFRAMES 10
-
-#define STACKPAGES 18         /*lo stack ha un numero di pagine fisse*/
-
-
-
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM      <------- IMPORTANTE      
  * assignment, this file is not compiled or linked or in any way
@@ -106,7 +99,7 @@ as_create(void)
         as->padd_stack =0;
 
         /*freeframes list*/
-        as->freeframelist = NULL;
+        as->freeFrameList = 0;
 
         /*Valid entry*/
         as->entry_valid = NULL;
@@ -352,21 +345,28 @@ as_prepare_load2(struct addrspace *as)
 
         /*PT initialization (CODE + DATA)*/
         as -> pt = pt_create(as->npagesCode + as->npagesData);
-
-
         if(as -> pt == NULL){
                 panic("PT DATA and CODE entries not allocated. The program is stopping...\n");
                 return ENOMEM; 
         }
 
+        /*FFL initialization*/
+        /*alloco la struttura FreeFrameList*/
+        as->freeFrameList = ffl_create(NFRAMES);
+        if(as->freeFrameList == NULL){ 
+          kprintf("FreeFrameList structure is not allocated!\n");
+          return ENOMEM;
+        }
+        /*inizializzo la struttura*/
+        ffl_init(&(as->freeFrameList), NFRAMES);
 
         /* Initialize the stack */
-        // as->padd_stack = getppages(STACKPAGES);
-        // if(as->padd_stack == 0){
-        //         kprintf("Warning: Stack allocation failed\n");
-        //         return ENOMEM;
-        // }
-
+        as->padd_stack = getppages(STACKPAGES);
+        if(as->padd_stack == 0){
+                kprintf("Warning: Stack allocation failed\n");
+                return ENOMEM;
+        }
+        as_zero_region(as->padd_stack, STACKPAGES);
 
         // /*Frames allocations*/
         // as->as_frames = getppages(NFRAMES);     //alloco un numero fisso di frames
@@ -376,7 +376,7 @@ as_prepare_load2(struct addrspace *as)
         // }
 
 
-        as_zero_region(as->as_frames, NFRAMES);
+        //as_zero_region(as->as_frames, NFRAMES);
 
         return 0;
 }
@@ -395,18 +395,10 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-        /*
-         * Write this.
-         */
-        if(as->padd_stack == 0){
-                kprintf("Warning: Stack allocation failed\n");
-                return ENOMEM;
-        }
+	KASSERT(as->padd_stack != 0);
 
-        /* Initial user-level stack pointer */
-        *stackptr = USERSTACK;
-
-        return 0;
+	*stackptr = USERSTACK;
+	return 0;
 }
 
 
@@ -494,7 +486,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 		}
 		
 		/*pop from freeframelist*/
-		frame_number = ffl_pop(&as->freeframelist); 
+		frame_number = ffl_pop(&(as->freeFrameList)); 
 		
 		/*check if freeframelist is empty*/
 		if(frame_number == 0){	/*free frame list vuoto*/
