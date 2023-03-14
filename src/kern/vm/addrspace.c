@@ -239,6 +239,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offs
          * Write this.
          */
         size_t npages;
+        (void)filesize;
 
         vm_can_sleep();
 
@@ -260,14 +261,14 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offs
                 /*i save its parameters*/
                 as -> code_seg_start = vaddr;
                 as -> code_seg_offset = offset;
-                as -> code_seg_size = filesize;
+                as -> code_seg_size = memsize;
                 as-> npagesCode = npages;
 
         }else{
                 /*data segment*/
                 as -> data_seg_start = vaddr;
                 as -> data_seg_offset = offset;
-                as -> data_seg_size = filesize;
+                as -> data_seg_size = memsize;
                 as-> npagesData = npages;
 
         }
@@ -461,9 +462,6 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 	/*se il faultaddress appartiene allo stack, aggiorno solo la TLB e salto tutto il codice sottostante*/
 	if (faultaddress >= stackbase && faultaddress < stacktop) {
                 stack_padd = (faultaddress - stackbase) + as->padd_stack; /*stack*/
-		
-		/* make sure it's page-aligned */
-        	KASSERT((stack_padd & PAGE_FRAME) == stack_padd);
 		
 		ret_TLB_value = tlb_insert(stack_padd, 0, 1,faultaddress);
 		return 0;
