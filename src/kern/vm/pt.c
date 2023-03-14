@@ -43,7 +43,7 @@ vaddr_t get_page_number(vaddr_t virtualaddr,uint8_t *entry_valid)
 void pt_update(paddr_t *pt,uint8_t *entry_valid,paddr_t new_frame,uint8_t nvalidentries,uint8_t new_pt_index)
 {
     
-    entry_valid[index] =new_pt_index;
+    entry_valid[index] = new_pt_index;
 
     pt[entry_valid[index]] = new_frame;
     

@@ -102,7 +102,7 @@ load_page_fromElf(off_t offset, vaddr_t vaddr,
         u.uio_rw = UIO_READ;
         u.uio_space = as;
 
-        result = VOP_READ(vn, &u);               
+        result = VOP_READ(vn, &u);
         if (result) {
 
                 vfs_close(vn);
@@ -271,7 +271,7 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
         }
         
 
-        vn = v;
+        //vn = v;
 
         *entrypoint = eh.e_entry;  
 
