@@ -10,7 +10,8 @@
 /*return values of "which_segment" function*/
 #define DATA_SEG 0 
 #define CODE_SEG 1
-#define ERR_SEG 2
+#define STACK_SEG 2
+#define ERR_SEG 3
 
 /*function that checks from which segment faultaddress comes*/
 int which_segment(struct addrspace *as, vaddr_t faultaddress);

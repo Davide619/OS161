@@ -73,6 +73,7 @@ struct addrspace {
 
         /*PT*/
         paddr_t *pt;
+        size_t nentries;
 
         /*DATA*/
         vaddr_t data_seg_start;
@@ -90,7 +91,7 @@ struct addrspace {
         paddr_t as_frames;
 
         /*Stack*/
-        paddr_t padd_stack;
+        vaddr_t stackptr;
 
         /*freeframes list*/
         struct ffl *freeFrameList;
@@ -175,7 +176,7 @@ int     vm_fault(int faulttype, vaddr_t faultaddress);
 
 
 int     as_complete_load(struct addrspace *as);
-int     as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
+int     as_define_stack(vaddr_t *stackptr);
 
 /*
  * Functions in loadelf.c

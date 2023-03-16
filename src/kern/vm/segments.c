@@ -10,6 +10,7 @@
 #include <vnode.h>
 #include <elf.h>
 #include <vfs.h>
+#include <vm.h>
 
 #include <kern/fcntl.h>
 #include <mips/tlb.h>
@@ -17,19 +18,27 @@
 static struct vnode *vn;
 
 int which_segment(struct addrspace *as, vaddr_t faultaddress){
-    /*In questi if controllo se l'informazione che ricevo dall'indirizzo virtuale fa parte del code, data o stack*/
-    if ((faultaddress >= (as->code_seg_start)) && (faultaddress < ((as->code_seg_size -1)+(as->code_seg_start))))
-    {       
-        /*code*/
-		return CODE_SEG;
-    }
-    else if ((faultaddress >= (as->data_seg_start)) && (faultaddress < ((as->data_seg_size -1)+(as->data_seg_start))))
+    vaddr_t stackbase, stacktop;
+
+    stackbase = USERSTACK - STACKPAGES * PAGE_SIZE;
+    stacktop = USERSTACK;
+
+    /*In questi if controllo se l'informazione che ricevo dall'indirizzo virtuale fa parte del data, code o stack*/
+    if ((faultaddress >= (as->data_seg_start)) && (faultaddress < ((as->data_seg_size)+(as->data_seg_start))))
     {
         /*data*/
 	    return DATA_SEG;
     }
-        			
-    else  return ERR_SEG; /*Ritorno un errore qualora tale indirizzo non fa parte di nessuno di questi casi*/
+    else if ((faultaddress >= (as->code_seg_start)) && (faultaddress < ((as->code_seg_size)+(as->code_seg_start))))
+    {       
+        /*code*/
+		return CODE_SEG;
+    }
+    /*se il faultaddress appartiene allo stack, aggiorno solo la TLB e salto tutto il codice sottostante*/
+    else if (faultaddress >= stackbase && faultaddress < stacktop) {
+        return STACK_SEG;
+    }			
+    else return ERR_SEG; /*Ritorno un errore qualora tale indirizzo non fa parte di nessuno di questi casi*/
 }
 
 

@@ -83,6 +83,7 @@ as_create(void)
 
         /*PT*/
         as -> pt = NULL;
+        as->nentries = 0;
 
         as -> code_seg_start = 0;
         as -> code_seg_offset =0;
@@ -96,7 +97,7 @@ as_create(void)
 
         as -> as_frames = 0;
 
-        as->padd_stack =0;
+        as->stackptr =0;
 
         /*freeframes list*/
         as->freeFrameList = 0;
@@ -294,10 +295,10 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offs
 
 
 
-static void as_zero_region(paddr_t paddr, unsigned npages)
-{
-        bzero((void *)PADDR_TO_KVADDR(paddr), npages * PAGE_SIZE);
-}
+// static void as_zero_region(paddr_t paddr, unsigned npages)
+// {
+//         bzero((void *)PADDR_TO_KVADDR(paddr), npages * PAGE_SIZE);
+// }
 
 
 
@@ -337,8 +338,7 @@ static void as_zero_region(paddr_t paddr, unsigned npages)
 int
 as_prepare_load2(struct addrspace *as)
 {
-
-        uint8_t nentries = as->npagesCode + as->npagesData;
+        as->nentries = (as->data_seg_start + as->data_seg_size - as->code_seg_start) / PAGE_SIZE;
 
         //Kassert termina il programma solo se la condizione nella parentesi è falsa
         KASSERT(as->npagesCode != 0);
@@ -347,13 +347,13 @@ as_prepare_load2(struct addrspace *as)
         vm_can_sleep();
 
         /*PT allocation (CODE + DATA)*/
-        as -> pt = pt_create(nentries);
+        as -> pt = pt_create(as->nentries + STACKPAGES);
         if(as -> pt == NULL){
                 panic("PT DATA and CODE entries not allocated. The program is stopping...\n");
                 return ENOMEM; 
         }
         /*PT initialization (CODE + DATA)*/
-        for (uint8_t i = 0; i < nentries; ++i)
+        for (uint8_t i = 0; i < as->nentries + STACKPAGES; ++i)
                 as->pt[i] = 0;
 
 
@@ -369,14 +369,14 @@ as_prepare_load2(struct addrspace *as)
         /*ENTRY_VALID allocation*/
         as->entry_valid = kmalloc(sizeof(uint8_t) * NFRAMES);
 
-        /* allocate the stack */
-        as->padd_stack = getppages(STACKPAGES);
-        if(as->padd_stack == 0){
-                kprintf("Warning: Stack allocation failed\n");
-                return ENOMEM;
-        }
-        /* initialize the stack*/
-        as_zero_region(as->padd_stack, STACKPAGES);
+        // /* allocate the stack */
+        // as->padd_stack = getppages(STACKPAGES);
+        // if(as->padd_stack == 0){
+        //         kprintf("Warning: Stack allocation failed\n");
+        //         return ENOMEM;
+        // }
+        // /* initialize the stack*/
+        // as_zero_region(as->padd_stack, STACKPAGES);
 
         // /*Frames allocations*/
         // as->as_frames = getppages(NFRAMES);     //alloco un numero fisso di frames
@@ -403,10 +403,8 @@ as_complete_load(struct addrspace *as)
 }
 
 int
-as_define_stack(struct addrspace *as, vaddr_t *stackptr)
+as_define_stack(vaddr_t *stackptr)
 {
-	KASSERT(as->padd_stack != 0);
-
 	*stackptr = USERSTACK;
 	return 0;
 }
@@ -414,9 +412,9 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 int vm_fault(int faulttype, vaddr_t faultaddress)                        
 {
         vaddr_t vbase1, stackbase, stacktop;
-        paddr_t frame_number, old_frame, stack_padd;
+        paddr_t frame_number, old_frame;
         int ret_value, ret_TLB_value, flagRWX, load_from_elf;
-	uint8_t pt_index,old_pt_index;
+	uint8_t pt_index,old_pt_index, last_index;
         struct addrspace *as;
         off_t index_swapfile, page_in_swapfile, off_fromELF;
         
@@ -461,23 +459,17 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 	
 	/*se il faultaddress appartiene allo stack, aggiorno solo la TLB e salto tutto il codice sottostante*/
 	if (faultaddress >= stackbase && faultaddress < stacktop) {
-                stack_padd = (faultaddress - stackbase) + as->padd_stack; /*stack*/
-		
-		ret_TLB_value = tlb_insert(stack_padd, 0, 1,faultaddress);
-		return 0;
+
+                last_index = as->nentries + STACKPAGES - 1;
+                pt_index = last_index - (stacktop - faultaddress) / PAGE_SIZE;
         }
-	
-	
- 	/*getting the page number*/
-        //page_number = faultaddress & PAGE_FRAME;                
-        
-        /*getting the offset*/
-        //page_offset = faultaddress & 0x00000fff;                       
-	
-	/*index in PT*/
-	pt_index = (faultaddress-vbase1)/PAGE_SIZE;
-	
-	/*check for an invalid entry in PT*/
+        else
+        {
+                /*index in PT*/
+	        pt_index = (faultaddress-vbase1)/PAGE_SIZE;
+        }
+
+        /*check for an invalid entry in PT*/
 	if(as->pt[pt_index] == 0){
 		
 		index_swapfile = search_swapped_frame(faultaddress); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
@@ -542,6 +534,13 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				
 				/*check if the faultaddress comes from DATA seg, CODE seg*/
                                 switch(which_segment(as,faultaddress)){
+                                        case DATA_SEG:
+                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, (as -> data_seg_size), (as -> data_seg_offset));
+					        flagRWX = 0;
+                				/*load the frame from elf_file*/	
+		                		/*i will load the frame from elf_file*/
+				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+                                                break;
                                         case CODE_SEG:
                                                 off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, (as -> code_seg_size), (as -> code_seg_offset));
                                                 flagRWX = 1;
@@ -549,12 +548,8 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				                /*i will load the frame from elf_file*/
 				                ret_value = load_page_fromElf(off_fromELF, as->code_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);					        
                                                 break;
-                                        case DATA_SEG:
-                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, (as -> data_seg_size), (as -> data_seg_offset));
-					        flagRWX = 0;
-                				/*load the frame from elf_file*/	
-		                		/*i will load the frame from elf_file*/
-				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+                                        case STACK_SEG:
+                                                ret_value = 0;
                                                 break;
                                         case ERR_SEG:
                                                 panic("INVALID faultaddress. The program is stopping...\n");
@@ -565,9 +560,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                                 off_fromELF =0;
                                                 break;
                                         }
-
-                                /*i will load the frame from elf_file*/
-				ret_value = load_page_fromElf(off_fromELF, faultaddress, PAGE_SIZE, PAGE_SIZE, flagRWX);			
+		
 				if(ret_value ==0){
 					kprintf("Frame is loaded from elfFile!\n");
 				}else{
@@ -593,8 +586,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 					panic("ERROR swap_in page from swap_file! the program is stopping...\n");
 				}
 			}
-
-			
+	
 		}else{
 			/*QUI SONO NEL CASO IN CUI NEL FREEFRAMELIST C'è UN FRAME LIBERO*/
 			/*PT update*/
@@ -618,6 +610,13 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 
                                 /*check if the faultaddress comes from DATA seg, CODE seg*/
                                 switch(res_seg){
+                                        case DATA_SEG:
+                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, (as -> data_seg_size), (as -> data_seg_offset));
+                                                flagRWX = 0;
+                				/*load the frame from elf_file*/	
+		                		/*i will load the frame from elf_file*/
+				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+                                                break;
                                         case CODE_SEG:
                                                 off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, (as -> code_seg_size), (as -> code_seg_offset));
                                                 flagRWX = 1;
@@ -625,12 +624,8 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				                /*i will load the frame from elf_file*/
 				                ret_value = load_page_fromElf(off_fromELF, as->code_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
                                                 break;
-                                        case DATA_SEG:
-                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, (as -> data_seg_size), (as -> data_seg_offset));
-                                                flagRWX = 0;
-                				/*load the frame from elf_file*/	
-		                		/*i will load the frame from elf_file*/
-				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+                                        case STACK_SEG:
+                                                ret_value = 0;
                                                 break;
                                         case ERR_SEG:
                                                 panic("INVALID faultaddress. The program is stopping...\n");

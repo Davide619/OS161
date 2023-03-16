@@ -57,7 +57,7 @@ runprogram(char *progname)
 {
 	struct addrspace *as;
 	struct vnode *v;
-	vaddr_t entrypoint, stackptr;
+	vaddr_t entrypoint;
 	int result;
 
 	/* Open the file. */
@@ -80,6 +80,13 @@ runprogram(char *progname)
 	proc_setas(as);
 	as_activate();
 
+	/* Define the user stack in the address space */
+	result = as_define_stack(&(as->stackptr));
+	if (result) {
+		/* p_addrspace will go away when curproc is destroyed */
+		return result;
+	}
+
 	/* Load the executable. */
 	result = load_elf(v, &entrypoint);
 	if (result) {
@@ -91,17 +98,10 @@ runprogram(char *progname)
 	/* Done with the file now. */
 	vfs_close(v);
 
-	/* Define the user stack in the address space */
-	result = as_define_stack(as, &stackptr);
-	if (result) {
-		/* p_addrspace will go away when curproc is destroyed */
-		return result;
-	}
-
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  NULL /*userspace addr of environment*/,
-			  stackptr, entrypoint);
+			  as->stackptr, entrypoint);
 
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
