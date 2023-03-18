@@ -137,8 +137,9 @@ common_prog(int nargs, char **args)
 	 * The new process will be destroyed when the program exits...
 	 * once you write the code for handling that.
 	 */
+	//for (unsigned i = 0; i < 100000000; ++i) {}
 
-	return 0;
+		return 0;
 }
 
 /*

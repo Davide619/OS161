@@ -8,9 +8,9 @@ TOP=../..
 SUBDIRS=add argtest badcall bigexec bigfile bigfork bigseek bloat conman \
 	crash ctest dirconc dirseek dirtest exit_test f_test factorial farm faulter \
 	filetest forkbomb forktest frack hash hog huge \
-	malloctest matmult multiexec palin parallelvm poisondisk psort \
+	malloctest matmult multiexec palin parallelvm poisondisk psort prova \
 	randcall redirect rmdirtest rmtest \
-	sbrktest schedpong sort sparsefile tail test01 test02 test03 tictac triplehuge \
+	sbrktest schedpong sort sparsefile tail tictac triplehuge \
 	triplemat triplesort usemtest zero
 
 # But not:
