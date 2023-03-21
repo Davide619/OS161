@@ -47,7 +47,7 @@ void        swap_shutdown(void);
 //extern struct lock *global_paging_lock;
 
 typedef struct st_t{
-    vaddr_t *addr[SWAP_SIZE / PAGE_SIZE];
+    vaddr_t addr[SWAP_SIZE / PAGE_SIZE];
     off_t offset_swapfile[SWAP_SIZE / PAGE_SIZE];
 }swappage_trace;
 

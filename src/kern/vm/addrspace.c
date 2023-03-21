@@ -475,7 +475,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 		index_swapfile = search_swapped_frame(faultaddress); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
 									da cercare nello swapfile. Ritorna 0 se non trova nulla oppure l'indice*/
 		/*Check if the searching was successful*/
-		if(index_swapfile == 0){
+		if(index_swapfile == -1){
 			load_from_elf = 1; /*frame out from swap file*/			/*<------variable to be declered (global or static)?*/
 		}
 		

@@ -174,7 +174,7 @@ swap_alloc(vaddr_t vaddr)		/*alloca una pagina sul vettore di mappa*/
 	KASSERT(rv == 0);
 
 	/*associo al p_addr l'index di allocazione associato*/
-	p->addr[index_paddr] = &vaddr;
+	p->addr[index_paddr] = vaddr;
 	p->offset_swapfile[index_paddr] = index*PAGE_SIZE;
 
 	index_paddr++;
@@ -193,11 +193,11 @@ search_swapped_frame(vaddr_t vaddr)		/*funzione di ricerca*/
 {
 
 	for(int i = swap_total_pages-1; i>=0; i--){
-		if(&vaddr == p->addr[i])
+		if(vaddr == p->addr[i])
 			return p->offset_swapfile[i];	/*ritorna l'indirizzo di allocazione del frame nello swap file*/
 	}
 
-	return 0;		
+	return -1;		
 }
 
 
