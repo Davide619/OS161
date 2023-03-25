@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2023-03-25T10:50:10.887Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/111.0" etag="js_n3DuLuhYmjQd-CTuV" version="21.1.1" type="github" pages="3">
+<mxfile host="app.diagrams.net" modified="2023-03-25T10:55:36.297Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/111.0" etag="4crS8WN-trCOcY7V79Vu" version="21.1.1" type="github" pages="3">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="VM Fault">
     <mxGraphModel dx="900" dy="529" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -743,10 +743,10 @@
             <mxPoint x="440" y="1242.5" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="8kX4SsiUolkoRraGECA3-15" value="&lt;b&gt;Search_swapped_frame()&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+        <mxCell id="8kX4SsiUolkoRraGECA3-15" value="&lt;font size=&quot;1&quot;&gt;&lt;b style=&quot;font-size: 14px;&quot;&gt;Search_swapped_frame()&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="500" y="1150" width="60" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="8kX4SsiUolkoRraGECA3-16" value="&lt;b&gt;Swap_pagein&lt;/b&gt;()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+        <mxCell id="8kX4SsiUolkoRraGECA3-16" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;Swap_pagein&lt;/b&gt;()&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
           <mxGeometry x="470" y="1280" width="60" height="30" as="geometry" />
         </mxCell>
       </root>
