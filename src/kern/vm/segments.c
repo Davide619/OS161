@@ -43,37 +43,39 @@ int which_segment(struct addrspace *as, vaddr_t faultaddress){
 
 
 
-/*OffsetFromELF function*/
-off_t
+/*OffsetFromELF function*/ 
+int
 offset_fromELF(vaddr_t segment_start, vaddr_t faultaddress, size_t segment_size, off_t segment_offset){
 
-        off_t ret_offset;
         /* Compute the segment relative page */
-        unsigned int npage_from_start = ((faultaddress & PAGE_FRAME) - (segment_start & PAGE_FRAME))/PAGE_SIZE;
-        
-        
-        if(npage_from_start == 0){
-                /* in case we are in the first page of the segment*/
-                ret_offset = segment_offset;
-                
-        }else if(((faultaddress - segment_start)&PAGE_FRAME) > segment_size){
-                /* in case we are beyond the size of segment. This means that i will have zeros in that part of elf-File*/
-                ret_offset = segment_offset + segment_size;
-                
-        }else{
-                /* intermidiate page */
-                ret_offset = segment_offset + (PAGE_SIZE - segment_offset % PAGE_SIZE) + (npage_from_start-1)*PAGE_SIZE;
-                
-        }
-        
-        return ret_offset;
+        int npage_from_start = ((faultaddress & PAGE_FRAME) - (segment_start & PAGE_FRAME))/PAGE_SIZE;
+        (void)segment_size;
+        (void)segment_offset;
 
+        // if(npage_from_start == 0){
+        //         /* in case we are in the first page of the segment*/
+        //         ret_offset = segment_offset;
+                
+        // }else if(((faultaddress - segment_start)&PAGE_FRAME) > segment_size){
+        //         /* in case we are beyond the size of segment. This means that i will have zeros in that part of elf-File*/
+        //         ret_offset = segment_offset + segment_size;
+                
+        // }else{
+        //         /* intermidiate page */
+        //         ret_offset = segment_offset + (PAGE_SIZE - segment_offset % PAGE_SIZE) + (npage_from_start-1)*PAGE_SIZE;
+                
+        // }
+
+        // (void)segment_size;
+        // ret_offset = segment_offset + npage_from_start * PAGE_SIZE;
+
+        return npage_from_start;
 }
 
 
 
 int
-load_page_fromElf(off_t offset, vaddr_t vaddr,
+load_page_fromElf(int offset, vaddr_t vaddr,
              size_t memsize, size_t filesize,
              int is_executable)
 {
@@ -81,6 +83,7 @@ load_page_fromElf(off_t offset, vaddr_t vaddr,
         struct iovec iov;
         struct uio u;
         int result;
+        int filesize_mask = filesize / memsize;
 
         char *progname = proc_getprogname();
 
@@ -94,18 +97,17 @@ load_page_fromElf(off_t offset, vaddr_t vaddr,
         }
 
         if (filesize > memsize) {
-                kprintf("ELF: warning: segment filesize > segment memsize\n");
-                filesize = memsize;
+                filesize = (filesize_mask == offset) ? filesize & ~PAGE_FRAME : memsize;
         }
 
         DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",
               (unsigned long) filesize, (unsigned long) vaddr);
                                                                                
         iov.iov_ubase = (userptr_t)vaddr;
-        iov.iov_len = PAGE_SIZE;           // length of the memory space
+        iov.iov_len = memsize;           // length of the memory space
         u.uio_iov = &iov;
         u.uio_iovcnt = 1;
-        u.uio_resid = PAGE_SIZE;          // amount to read from the file
+        u.uio_resid = filesize;          // amount to read from the file
         u.uio_offset = offset;
         u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
         u.uio_rw = UIO_READ;

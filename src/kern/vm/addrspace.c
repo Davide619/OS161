@@ -240,7 +240,6 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offs
          * Write this.
          */
         size_t npages;
-        (void)filesize;
 
         vm_can_sleep();
 
@@ -262,15 +261,17 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offs
                 /*i save its parameters*/
                 as -> code_seg_start = vaddr;
                 as -> code_seg_offset = offset;
+                as -> code_seg_filesize = filesize;
                 as -> code_seg_size = memsize;
-                as-> npagesCode = npages;
+                as -> npagesCode = npages;
 
         }else{
                 /*data segment*/
                 as -> data_seg_start = vaddr;
                 as -> data_seg_offset = offset;
+                as -> data_seg_filesize = filesize;
                 as -> data_seg_size = memsize;
-                as-> npagesData = npages;
+                as -> npagesData = npages;
 
         }
 
@@ -413,10 +414,10 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 {
         vaddr_t vbase1, stackbase, stacktop;
         paddr_t frame_number, old_frame;
-        int ret_value, ret_TLB_value, flagRWX, load_from_elf;
+        int ret_value, ret_TLB_value, flagRWX, load_from_elf = 0, off_fromELF;
 	uint8_t pt_index,old_pt_index, last_index;
         struct addrspace *as;
-        off_t index_swapfile, page_in_swapfile, off_fromELF;
+        off_t index_swapfile, page_in_swapfile;
         
         DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
 
@@ -539,14 +540,14 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 					        flagRWX = 0;
                 				/*load the frame from elf_file*/	
 		                		/*i will load the frame from elf_file*/
-				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, as->data_seg_filesize, flagRWX);
                                                 break;
                                         case CODE_SEG:
                                                 off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, (as -> code_seg_size), (as -> code_seg_offset));
                                                 flagRWX = 1;
 					        /*load the frame from elf_file*/	
 				                /*i will load the frame from elf_file*/
-				                ret_value = load_page_fromElf(off_fromELF, as->code_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);					        
+				                ret_value = load_page_fromElf(off_fromELF, as->code_seg_start, PAGE_SIZE, as->code_seg_filesize, flagRWX);					        
                                                 break;
                                         case STACK_SEG:
                                                 ret_value = 0;
@@ -615,14 +616,14 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                                 flagRWX = 0;
                 				/*load the frame from elf_file*/	
 		                		/*i will load the frame from elf_file*/
-				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, as->data_seg_filesize, flagRWX);
                                                 break;
                                         case CODE_SEG:
                                                 off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, (as -> code_seg_size), (as -> code_seg_offset));
                                                 flagRWX = 1;
 					        /*load the frame from elf_file*/	
 				                /*i will load the frame from elf_file*/
-				                ret_value = load_page_fromElf(off_fromELF, as->code_seg_start, PAGE_SIZE, PAGE_SIZE, flagRWX);
+				                ret_value = load_page_fromElf(off_fromELF, as->code_seg_start, PAGE_SIZE, as->code_seg_filesize, flagRWX);
                                                 break;
                                         case STACK_SEG:
                                                 ret_value = 0;

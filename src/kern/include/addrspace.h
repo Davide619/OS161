@@ -78,12 +78,14 @@ struct addrspace {
         /*DATA*/
         vaddr_t data_seg_start;
         off_t data_seg_offset;
+        size_t data_seg_filesize;
         size_t data_seg_size;
         size_t npagesData;
 
         /*CODE*/
         vaddr_t code_seg_start;
         off_t code_seg_offset;
+        size_t code_seg_filesize;
         size_t code_seg_size;
         size_t npagesCode;
 

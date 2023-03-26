@@ -17,10 +17,11 @@
 int which_segment(struct addrspace *as, vaddr_t faultaddress);
 
 /*Computes the offset from elf file*/
-off_t offset_fromELF(vaddr_t segment_start, vaddr_t faultaddress, size_t segment_size, off_t segment_offset);
+//off_t offset_fromELF(vaddr_t segment_start, vaddr_t faultaddress, size_t segment_size, off_t segment_offset);
+int offset_fromELF(vaddr_t segment_start, vaddr_t faultaddress, size_t segment_size, off_t segment_offset);
 
 /*load page function*/
-int load_page_fromElf(off_t offset, vaddr_t vaddr, size_t memsize, size_t filesize, int is_executable);
+int load_page_fromElf(int offset, vaddr_t vaddr, size_t memsize, size_t filesize, int is_executable);
 
 /*load elf function*/
 int load_elf(struct vnode *v, vaddr_t *entrypoint);

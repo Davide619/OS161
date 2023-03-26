@@ -84,10 +84,9 @@ ram_bootstrap(void)
 
 	/* Allocate the proper space for frame_alloc & alloc_size...
 	 */
-	nframes = (lastpaddr - firstpaddr) / PAGE_SIZE; // C5 (hex), 197 (dec)
-	frame_alloc = bitmap_create(nframes); // 25 bytes + 2 bytes for struct allocation
-	alloc_size = kmalloc(nframes); // 197 bytes
-	// 197 + 27 = 224 bytes allocated: just one page needed to handle frame_alloc & alloc_size
+	nframes = (lastpaddr - firstpaddr) / PAGE_SIZE;
+	frame_alloc = bitmap_create(nframes);
+	alloc_size = kmalloc(nframes);
 
 	/* ...then initialize alloc_size...
 	 */
