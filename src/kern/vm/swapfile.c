@@ -189,12 +189,12 @@ swap_alloc(vaddr_t vaddr)		/*alloca una pagina sul vettore di mappa*/
 
 
 off_t
-search_swapped_frame(vaddr_t vaddr)		/*funzione di ricerca*/
+search_swapped_frame(vaddr_t vaddr)		
 {
 
 	for(int i = swap_total_pages-1; i>=0; i--){
 		if(vaddr == p->addr[i])
-			return p->offset_swapfile[i];	/*ritorna l'indirizzo di allocazione del frame nello swap file*/
+			return p->offset_swapfile[i];	/*returns the frame allocation address inside swapfile*/
 	}
 
 	return -1;		
