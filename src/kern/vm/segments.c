@@ -48,26 +48,10 @@ int
 offset_fromELF(vaddr_t segment_start, vaddr_t faultaddress, size_t segment_size, off_t segment_offset){
 
         /* Compute the segment relative page */
-        int npage_from_start = ((faultaddress & PAGE_FRAME) - (segment_start & PAGE_FRAME))/PAGE_SIZE;
+        //int npage_from_start = ((faultaddress & PAGE_FRAME) - (segment_start & PAGE_FRAME))/PAGE_SIZE;
+        int npage_from_start = (faultaddress - segment_start) / PAGE_SIZE;
         (void)segment_size;
         (void)segment_offset;
-
-        // if(npage_from_start == 0){
-        //         /* in case we are in the first page of the segment*/
-        //         ret_offset = segment_offset;
-                
-        // }else if(((faultaddress - segment_start)&PAGE_FRAME) > segment_size){
-        //         /* in case we are beyond the size of segment. This means that i will have zeros in that part of elf-File*/
-        //         ret_offset = segment_offset + segment_size;
-                
-        // }else{
-        //         /* intermidiate page */
-        //         ret_offset = segment_offset + (PAGE_SIZE - segment_offset % PAGE_SIZE) + (npage_from_start-1)*PAGE_SIZE;
-                
-        // }
-
-        // (void)segment_size;
-        // ret_offset = segment_offset + npage_from_start * PAGE_SIZE;
 
         return npage_from_start;
 }
@@ -83,7 +67,8 @@ load_page_fromElf(int offset, vaddr_t vaddr,
         struct iovec iov;
         struct uio u;
         int result;
-        int filesize_mask = filesize / memsize;
+        int lastpage = filesize / memsize;
+        vaddr_t start_seg;
 
         char *progname = proc_getprogname();
 
@@ -96,14 +81,30 @@ load_page_fromElf(int offset, vaddr_t vaddr,
                 return result;
         }
 
+        /* handle the case in which we access the last page, in this case filesize
+         * is not equal to memsize 
+         */
         if (filesize > memsize) {
-                filesize = (filesize_mask == offset) ? filesize & ~PAGE_FRAME : memsize;
+                filesize = (lastpage == offset) ? filesize & ~PAGE_FRAME : memsize;
+        }
+
+        /* convert offset in bytes */
+        offset *= memsize;
+
+        /* compute the start virtual address of the segment to be loaded */
+        start_seg = vaddr + offset;
+
+        /* check if we are in the data segment, in this case take into
+         * account the offset due to the first segment inside the ELF file
+         */
+        if(vaddr == as->data_seg_start) {
+                offset += as->data_seg_offset;
         }
 
         DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",
               (unsigned long) filesize, (unsigned long) vaddr);
                                                                                
-        iov.iov_ubase = (userptr_t)vaddr;
+        iov.iov_ubase = (userptr_t)start_seg;
         iov.iov_len = memsize;           // length of the memory space
         u.uio_iov = &iov;
         u.uio_iovcnt = 1;

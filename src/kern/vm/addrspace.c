@@ -467,7 +467,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
         else
         {
                 /*index in PT*/
-	        pt_index = (faultaddress-vbase1)/PAGE_SIZE;
+	        pt_index = (faultaddress - vbase1) / PAGE_SIZE;
         }
 
         /*check for an invalid entry in PT*/
@@ -598,7 +598,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			
 			
 			if (ret_TLB_value == 0){
-				kprintf("TLB was not FULL, new TLB entry is loaded!\n");
+				//kprintf("TLB was not FULL, new TLB entry is loaded!\n");
 			}else{
 				kprintf("TLB was FULL, new TLB entry is loaded by REPLACEMENT ALGORITHM!\n");
 			}
@@ -639,7 +639,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                         }
 
                                 if(ret_value ==0){
-					kprintf("Frame is loaded from elfFile!\n");
+					//kprintf("Frame is loaded from elfFile!\n");
 				}else{
 					panic("ERROR load from ElfFile! the program is stopping...\n");
 				}
