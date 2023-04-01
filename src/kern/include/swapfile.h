@@ -23,8 +23,8 @@
  *                   from the requested physical page.
  */
 
-#define SWAP_READ 1
-#define SWAP_WRITE 2
+#define SWAP_READ 0
+#define SWAP_WRITE 1
 
 void        swap_bootstrap(void);
 off_t	 	swap_alloc(vaddr_t vaddr);

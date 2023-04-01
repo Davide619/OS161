@@ -253,16 +253,17 @@ swap_io(vaddr_t vaddr, off_t swapaddr, int rw)		/*funzione responsabile sia dell
 	switch(rw){
 		case SWAP_READ:
 			result = vfs_open(path, O_RDONLY, 0, &swapstore);
-			r_w =1;
-			if (result) {
-				vfs_close(swapstore);
-				panic("ERROR: swap_in opening failed.\n");
+			r_w = 1;
+			if (result)
+			{
+			vfs_close(swapstore);
+			panic("ERROR: swap_in opening failed.\n");
 			}
 			break;
 			
 		case SWAP_WRITE:
 			result = vfs_open(path, O_WRONLY, 0, &swapstore);
-			r_w=0;
+			r_w = 0;
 			if (result) {
 				vfs_close(swapstore);
 				panic("ERROR: swap_out opening failed.\n");

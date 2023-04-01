@@ -410,7 +410,7 @@ as_define_stack(vaddr_t *stackptr)
 	return 0;
 }
 
-int vm_fault(int faulttype, vaddr_t faultaddress)                        
+int vm_fault(int faulttype, vaddr_t faultaddress)                      
 {
         vaddr_t vbase1, stackbase, stacktop;
         paddr_t frame_number, old_frame;
@@ -473,7 +473,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
         /*check for an invalid entry in PT*/
 	if(as->pt[pt_index] == 0){
 		
-		index_swapfile = search_swapped_frame(faultaddress); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
+		index_swapfile = search_swapped_frame(faultaddress & PAGE_FRAME); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
 									da cercare nello swapfile. Ritorna 0 se non trova nulla oppure l'indice*/
 		/*Check if the searching was successful*/
 		if(index_swapfile == -1){
@@ -510,8 +510,13 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			
 			/*TLB update*/
 			/*carico la TLB con la nuova entry*/
-			
-			
+			ret_TLB_value = TLB_Invalidate(old_frame);
+			if (ret_TLB_value == 0){
+				kprintf("TLB invalidated!\n");
+			}else{
+				kprintf("TLB was NOT invalidated\n");
+			}
+
 			ret_TLB_value = tlb_insert(old_frame, frame_number, 1,faultaddress); /*questa funzione chiama automaticamente TLBreplace se non trova spazio*/
 											/*PRIMO parametro --> indirizzo fisico della pagina che si vuole inserire
 											 SECONDO parametro --> indirizzo fisico della pagina che si vuole inserire
@@ -532,18 +537,20 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 					
 			/*Checking where the frame has to be loaded from*/
 			if(load_from_elf == 1){
+
+                                int res_seg = which_segment(as, faultaddress);
 				
 				/*check if the faultaddress comes from DATA seg, CODE seg*/
-                                switch(which_segment(as,faultaddress)){
+                                switch(res_seg){
                                         case DATA_SEG:
-                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, (as -> data_seg_size), (as -> data_seg_offset));
+                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, as->data_seg_size, as->data_seg_offset);
 					        flagRWX = 0;
                 				/*load the frame from elf_file*/	
 		                		/*i will load the frame from elf_file*/
 				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, as->data_seg_filesize, flagRWX);
                                                 break;
                                         case CODE_SEG:
-                                                off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, (as -> code_seg_size), (as -> code_seg_offset));
+                                                off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, as->code_seg_size, as->code_seg_offset);
                                                 flagRWX = 1;
 					        /*load the frame from elf_file*/	
 				                /*i will load the frame from elf_file*/
@@ -567,15 +574,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				}else{
 					panic("ERROR load from ElfFile! the program is stopping...\n");
 				}
-			}else{
-				/*i will load the frame from swap_file*/
-				index_swapfile = search_swapped_frame(faultaddress); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
-											da cercare nello swapfile*/
-				/*Check if the searching was successful*/
-				if(index_swapfile ==0){
-					panic("ERROR search_swapped_frame function was NO successful! the program is stopping...\n");
-				}
-				
+			}else{		
 				ret_value = swap_pagein(get_page_number(vbase1,as->entry_valid), index_swapfile);	/*Starting virtualaddress in memory as first parameter of the function
 														(where i expect to find the virtual address that corresponds to physical one)*/
 														/*La funzione "swap_pagein" vuole:
@@ -612,14 +611,14 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                 /*check if the faultaddress comes from DATA seg, CODE seg*/
                                 switch(res_seg){
                                         case DATA_SEG:
-                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, (as -> data_seg_size), (as -> data_seg_offset));
+                                                off_fromELF = offset_fromELF(as->data_seg_start, faultaddress, as->data_seg_size, as->data_seg_offset);
                                                 flagRWX = 0;
                 				/*load the frame from elf_file*/	
 		                		/*i will load the frame from elf_file*/
 				                ret_value = load_page_fromElf(off_fromELF, as->data_seg_start, PAGE_SIZE, as->data_seg_filesize, flagRWX);
                                                 break;
                                         case CODE_SEG:
-                                                off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, (as -> code_seg_size), (as -> code_seg_offset));
+                                                off_fromELF = offset_fromELF(as->code_seg_start, faultaddress, as->code_seg_size, as->code_seg_offset);
                                                 flagRWX = 1;
 					        /*load the frame from elf_file*/	
 				                /*i will load the frame from elf_file*/
@@ -644,14 +643,6 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 					panic("ERROR load from ElfFile! the program is stopping...\n");
 				}
 			}else{
-				/*i will load the frame from swap_file*/
-				index_swapfile = search_swapped_frame(faultaddress);/*La funzione vuole come parametro l'indirizzo virtuale della pagina
-											da cercare nello swapfile*/
-				/*Check if the searching was successful*/
-				if(index_swapfile ==0){
-					panic("ERROR search_swapped_frame function was NO successful! the program is stopping...\n");
-				}
-                        
 				ret_value = swap_pagein(get_page_number(vbase1,as->entry_valid), index_swapfile);/*La funzione "swap_pagein" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare in memoria
 													SECONDO parametro --> Posizione (offset) corrispondente alla relativa pagina nello swap File*/	
@@ -660,7 +651,6 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				}else{
 					panic("ERROR swap_in page from swap_file! the program is stopping...\n");
 				}
-			
 			}
 
 			
