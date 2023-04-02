@@ -39,7 +39,7 @@
 #include <types.h>
 #include "opt-syscall.h"
 
-#define NFRAMES 10
+#define NFRAMES 150
 #define STACKPAGES 18         /*lo stack ha un numero di pagine fisse*/
 
 struct vnode;
@@ -99,7 +99,7 @@ struct addrspace {
         struct ffl *freeFrameList;
 
         /*Valid entry*/
-        uint8_t *entry_valid;
+        uint32_t *entry_valid;
 #endif
 };
 

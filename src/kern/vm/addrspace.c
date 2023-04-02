@@ -354,7 +354,7 @@ as_prepare_load2(struct addrspace *as)
                 return ENOMEM; 
         }
         /*PT initialization (CODE + DATA)*/
-        for (uint8_t i = 0; i < as->nentries + STACKPAGES; ++i)
+        for (uint32_t i = 0; i < as->nentries + STACKPAGES; ++i)
                 as->pt[i] = 0;
 
 
@@ -368,7 +368,7 @@ as_prepare_load2(struct addrspace *as)
         ffl_init(&(as->freeFrameList), NFRAMES);
 
         /*ENTRY_VALID allocation*/
-        as->entry_valid = kmalloc(sizeof(uint8_t) * NFRAMES);
+        as->entry_valid = kmalloc(sizeof(uint32_t) * NFRAMES);
 
         // /* allocate the stack */
         // as->padd_stack = getppages(STACKPAGES);
@@ -412,10 +412,11 @@ as_define_stack(vaddr_t *stackptr)
 
 int vm_fault(int faulttype, vaddr_t faultaddress)                      
 {
-        vaddr_t vbase1, stackbase, stacktop;
+        vaddr_t vbase1, page_number, stackbase, stacktop;
         paddr_t frame_number, old_frame;
-        int ret_value, ret_TLB_value, flagRWX, load_from_elf = 0, off_fromELF;
-	uint8_t pt_index,old_pt_index, last_index;
+        int ret_value, ret_TLB_value;
+        int flagRWX, load_from_elf = 0, off_fromELF;
+        uint32_t pt_index,old_pt_index, last_index;
         struct addrspace *as;
         off_t index_swapfile, page_in_swapfile;
         
@@ -457,11 +458,12 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 	
         stackbase = USERSTACK - STACKPAGES * PAGE_SIZE;
         stacktop = USERSTACK;
+
+        /* Compute the last page table index */
+        last_index = as->nentries + STACKPAGES - 1;
 	
 	/*se il faultaddress appartiene allo stack, aggiorno solo la TLB e salto tutto il codice sottostante*/
 	if (faultaddress >= stackbase && faultaddress < stacktop) {
-
-                last_index = as->nentries + STACKPAGES - 1;
                 pt_index = last_index - (stacktop - faultaddress) / PAGE_SIZE;
         }
         else
@@ -490,20 +492,29 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			vengano automaticamente caricate in memoria fisica (RAM)*/
 			old_frame = get_victim_frame(as->pt, as->entry_valid);
 			old_pt_index = get_victim_pt_index(as->entry_valid);
-			
-			/*swap out*/
-			page_in_swapfile = swap_alloc(get_page_number(vbase1,as->entry_valid)); //supponendo vbase1 indirizzo virtuale di partenza del primo segmento nell'elf
-												/*La funzione "swap_alloc" vuole come parametro l'indirizzo virtuale della pagina da allocare nello swap*/
-			ret_value = swap_pageout(get_page_number(vbase1,as->entry_valid), page_in_swapfile);/*La funzione "swap_pageout" vuole:
+
+                        /* compute the old page number*/
+                        if(old_pt_index >= as->nentries && old_pt_index < last_index+1) {
+                                page_number = stacktop - (last_index + 1 - old_pt_index) * PAGE_SIZE;
+                        } else {
+                                page_number = get_page_number(vbase1, as->entry_valid);
+                        }
+
+                        /*swap out*/
+                        page_in_swapfile = swap_alloc(page_number); // supponendo vbase1 indirizzo virtuale di partenza del primo segmento nell'elf
+                        /*La funzione "swap_alloc" vuole come parametro l'indirizzo virtuale della pagina da allocare nello swap*/
+                        ret_value = swap_pageout(page_number, page_in_swapfile);/*La funzione "swap_pageout" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare nello swap file
 													SECONDO parametro --> offset corrispondente alla posizione di allocazione della pagina nello swap File*/
-			if(ret_value == 0){
-				kprintf("Swap_out page is DONE!\n");
-			}else{
-				panic("ERROR swap_out page! the program is stopping...\n");
-			}
-			
-			/*PT update*/
+                        (void)ret_value;
+                        (void)ret_TLB_value;
+                        // if(ret_value == 0){
+                        // 	kprintf("Swap_out page is DONE!\n");
+                        // }else{
+                        // 	panic("ERROR swap_out page! the program is stopping...\n");
+                        // }
+
+                        /*PT update*/
 			as->pt[old_pt_index] = 0;
 			pt_update(as->pt, as->entry_valid, old_frame, NFRAMES, pt_index);
 			
@@ -511,22 +522,22 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			/*TLB update*/
 			/*carico la TLB con la nuova entry*/
 			ret_TLB_value = TLB_Invalidate(old_frame);
-			if (ret_TLB_value == 0){
-				kprintf("TLB invalidated!\n");
-			}else{
-				kprintf("TLB was NOT invalidated\n");
-			}
+			// if (ret_TLB_value == 0){
+			// 	kprintf("TLB invalidated!\n");
+			// }else{
+			// 	kprintf("TLB was NOT invalidated\n");
+			// }
 
 			ret_TLB_value = tlb_insert(old_frame, frame_number, 1,faultaddress); /*questa funzione chiama automaticamente TLBreplace se non trova spazio*/
 											/*PRIMO parametro --> indirizzo fisico della pagina che si vuole inserire
 											 SECONDO parametro --> indirizzo fisico della pagina che si vuole inserire
 											 TERZO parametro --> 0/1 decide quale dei due indirizzi fisici prendere
 											 QUARTO parametro --> indirizzo virtuale corrispondente a quella pagina fisica*/
-			if (ret_TLB_value == 0){
-				kprintf("TLB was not FULL, new TLB entry is loaded!\n");
-			}else{
-				kprintf("TLB was FULL, new TLB entry is loaded by REPLACEMENT ALGORITHM!\n");
-			}
+			// if (ret_TLB_value == 0){
+			// 	kprintf("TLB was not FULL, new TLB entry is loaded!\n");
+			// }else{
+			// 	kprintf("TLB was FULL, new TLB entry is loaded by REPLACEMENT ALGORITHM!\n");
+			// }
 			
 			
 
@@ -569,22 +580,22 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                                 break;
                                         }
 		
-				if(ret_value ==0){
-					kprintf("Frame is loaded from elfFile!\n");
-				}else{
-					panic("ERROR load from ElfFile! the program is stopping...\n");
-				}
+				// if(ret_value ==0){
+				// 	kprintf("Frame is loaded from elfFile!\n");
+				// }else{
+				// 	panic("ERROR load from ElfFile! the program is stopping...\n");
+				// }
 			}else{		
-				ret_value = swap_pagein(get_page_number(vbase1,as->entry_valid), index_swapfile);	/*Starting virtualaddress in memory as first parameter of the function
+				ret_value = swap_pagein(faultaddress, index_swapfile);	/*Starting virtualaddress in memory as first parameter of the function
 														(where i expect to find the virtual address that corresponds to physical one)*/
 														/*La funzione "swap_pagein" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare in memoria
 													SECONDO parametro --> Posizione (offset) corrispondente alla relativa pagina nello swap File*/
-				if(ret_value ==0){
-					kprintf("Swap_in page from swap_file is DONE!\n");
-				}else{
-					panic("ERROR swap_in page from swap_file! the program is stopping...\n");
-				}
+				// if(ret_value ==0){
+				// 	kprintf("Swap_in page from swap_file is DONE!\n");
+				// }else{
+				// 	panic("ERROR swap_in page from swap_file! the program is stopping...\n");
+				// }
 			}
 	
 		}else{
@@ -596,11 +607,11 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			ret_TLB_value = tlb_insert(0, frame_number, 0,faultaddress);
 			
 			
-			if (ret_TLB_value == 0){
-				//kprintf("TLB was not FULL, new TLB entry is loaded!\n");
-			}else{
-				kprintf("TLB was FULL, new TLB entry is loaded by REPLACEMENT ALGORITHM!\n");
-			}
+			// if (ret_TLB_value == 0){
+			// 	kprintf("TLB was not FULL, new TLB entry is loaded!\n");
+			// }else{
+			// 	kprintf("TLB was FULL, new TLB entry is loaded by REPLACEMENT ALGORITHM!\n");
+			// }
 
 			
 			/*Checking where the frame has to be loaded from*/
@@ -637,20 +648,20 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                                 break;
                                         }
 
-                                if(ret_value ==0){
-					//kprintf("Frame is loaded from elfFile!\n");
-				}else{
-					panic("ERROR load from ElfFile! the program is stopping...\n");
-				}
+                                // if(ret_value ==0){
+				// 	kprintf("Frame is loaded from elfFile!\n");
+				// }else{
+				// 	panic("ERROR load from ElfFile! the program is stopping...\n");
+				// }
 			}else{
-				ret_value = swap_pagein(get_page_number(vbase1,as->entry_valid), index_swapfile);/*La funzione "swap_pagein" vuole:
+				ret_value = swap_pagein(faultaddress, index_swapfile);/*La funzione "swap_pagein" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare in memoria
 													SECONDO parametro --> Posizione (offset) corrispondente alla relativa pagina nello swap File*/	
-				if(ret_value ==0){
-					kprintf("Swap_in page from swap_file is DONE!\n");
-				}else{
-					panic("ERROR swap_in page from swap_file! the program is stopping...\n");
-				}
+				// if(ret_value ==0){
+				// 	kprintf("Swap_in page from swap_file is DONE!\n");
+				// }else{
+				// 	panic("ERROR swap_in page from swap_file! the program is stopping...\n");
+				// }
 			}
 
 			
