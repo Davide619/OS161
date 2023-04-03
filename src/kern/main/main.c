@@ -56,7 +56,7 @@
 #include "opt-syscall.h"
 #include <coremap.h>
 #include <swapfile.h>
-
+#include <vmstats.h>
 /*
  * These two pieces of data are maintained by the makefiles and build system.
  * buildconfig is the name of the config file the kernel was configured with.
@@ -152,7 +152,7 @@ static
 void
 shutdown(void)
 {
-
+	print_all_stats(); //Prints all statistics coming from vam faults handling
 	kprintf("Shutting down.\n");
 
 	vfs_clearbootfs();

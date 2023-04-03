@@ -14,6 +14,7 @@
 
 #include <vm_tlb.h>
 
+#include <vmstats.h>
 
 /*FUNZIONE CHE AGGIUNGE UNA NEW ENTRY ALLA TLB*/
 int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){        /*paddr is the entrypoint from load_elf function*/
@@ -30,6 +31,7 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){ 
     
 // Look for an invalid entry on the TLB
     for (i=0; i<NUM_TLB; i++) {
+        
         tlb_read(&ehi, &elo, i);
         if (elo & TLBLO_VALID) {
             continue;
@@ -40,6 +42,7 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){ 
         DEBUG(DB_VM, "TLB Added: 0x%x -> 0x%x at location %d\n", faultaddress, paddr, i);
         tlb_write(ehi, elo, i);
         splx(spl); // Leave that to calling function
+        TLB_Faults_with_Free(); //TLB fault for which replcament was not needed
         return 0;
     }
 
@@ -51,7 +54,7 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){ 
 
     victim = tlb_get_rr_victim();
     tlb_write(ehi, elo, victim);
-
+    TLB_Faults_with_Replace(); //TLB fault for which replcament is needed
     return 1; //returns 1 if replace algorithm is executed 
 }
 
@@ -83,7 +86,7 @@ int TLB_Invalidate(paddr_t paddr)
             tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);        
         }
     }
-
+    TLB_Invalidations(); //Here we count all the invalidations of TLB
     return 0;
 }
 

@@ -41,6 +41,7 @@
 #include <swapfile.h>
 #include <coremap.h>
 #include <segments.h>
+#include <vmstats.h>
 
 ///////////////////////////
 #include <syscall.h>
@@ -356,7 +357,7 @@ as_prepare_load2(struct addrspace *as)
         /*PT initialization (CODE + DATA)*/
         for (uint32_t i = 0; i < as->nentries + STACKPAGES; ++i)
                 as->pt[i] = 0;
-
+	
 
         /*FFL allocation*/
         as->freeFrameList = ffl_create(NFRAMES);
@@ -369,7 +370,8 @@ as_prepare_load2(struct addrspace *as)
 
         /*ENTRY_VALID allocation*/
         as->entry_valid = kmalloc(sizeof(uint32_t) * NFRAMES);
-
+        PageFaults_Zeroed(NFRAMES); //Here we increment the counter of Page faults that caused a page replacement and so a zeroing of a frame
+			
         // /* allocate the stack */
         // as->padd_stack = getppages(STACKPAGES);
         // if(as->padd_stack == 0){
@@ -447,7 +449,9 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                 return EFAULT; 
         }
 
-	
+        
+	TLB_Faults(); //General TLB fault
+
 	KASSERT((as->as_vbase1 != 0) & ((as->as_vbase1 & PAGE_FRAME) == as->as_vbase1)); // <---modified(solo reso compatto)
 	KASSERT((as->code_seg_start != 0) & ((as->code_seg_start & PAGE_FRAME) == as->code_seg_start));
 	KASSERT((as->data_seg_start != 0) & ((as->data_seg_start & PAGE_FRAME) == as->data_seg_start));
@@ -481,7 +485,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 		if(index_swapfile == -1){
 			load_from_elf = 1; /*frame out from swap file*/			/*<------variable to be declered (global or static)?*/
 		}
-		
+		PageFaults_Disk();//Here we increment the counter for Page faults that will cause to load a page from ELF file or SWAP File
 		/*pop from freeframelist*/
 		frame_number = ffl_pop(&(as->freeFrameList)); 
 		
@@ -508,6 +512,9 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 													SECONDO parametro --> offset corrispondente alla posizione di allocazione della pagina nello swap File*/
                         (void)ret_value;
                         (void)ret_TLB_value;
+                        
+                        SwapfileWrites(); // Here we increment the counter of Page faults that causes a frame to be loaded in Swapfile
+                       
                         // if(ret_value == 0){
                         // 	kprintf("Swap_out page is DONE!\n");
                         // }else{
@@ -544,7 +551,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			/* Clear page of memory to be replaced */
 			bzero((void*)(faultaddress & PAGE_FRAME), PAGE_SIZE);				
 			
-					
+                        	
 					
 			/*Checking where the frame has to be loaded from*/
 			if(load_from_elf == 1){
@@ -585,6 +592,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				// }else{
 				// 	panic("ERROR load from ElfFile! the program is stopping...\n");
 				// }
+                                PageFaults_from_ELF(); //Here we increment the counter of Page Faults that caused a load froam ELF FILE
 			}else{		
 				ret_value = swap_pagein(faultaddress, index_swapfile);	/*Starting virtualaddress in memory as first parameter of the function
 														(where i expect to find the virtual address that corresponds to physical one)*/
@@ -596,6 +604,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				// }else{
 				// 	panic("ERROR swap_in page from swap_file! the program is stopping...\n");
 				// }
+                                PageFaults_from_Swapfile(); //Here we increment the counter of Page Faults that caused a swap in from DISK
 			}
 	
 		}else{
@@ -647,7 +656,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                                 off_fromELF =0;
                                                 break;
                                         }
-
+                                PageFaults_from_ELF(); //Here we increment the counter of Page Faults that caused a load froam ELF FILE
                                 // if(ret_value ==0){
 				// 	kprintf("Frame is loaded from elfFile!\n");
 				// }else{
@@ -662,12 +671,14 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				// }else{
 				// 	panic("ERROR swap_in page from swap_file! the program is stopping...\n");
 				// }
+                                PageFaults_from_Swapfile();//Here we increment the counter of Page Faults that caused a swap in from DISK
 			}
 
 			
 		}
 
 	}else{
+                TLB_Reloads(); // Here we increment the counter of TLB faults for a page that was already in memory(valid)
 		/*TLB update*/
 		ret_TLB_value = tlb_insert(as->pt[pt_index], 0, 1,faultaddress);
 	}
