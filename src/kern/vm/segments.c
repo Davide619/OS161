@@ -74,60 +74,68 @@ load_page_fromElf(int offset, vaddr_t vaddr,
 
         as = proc_getas();
 
-
-        /* Open the file. */
-        result = vfs_open(progname, O_RDONLY, 0, &vn);
-        if (result) {
-                return result;
-        }
-
-        /* handle the case in which we access the last page, in this case filesize
-         * is not equal to memsize 
+        /* Check that offset_fromElf is below the lastpage of our
+         * segment, otherwise we won't read anything from the ELF file 
          */
-        if (filesize > memsize) {
-                filesize = (lastpage == offset) ? filesize & ~PAGE_FRAME : memsize;
-        }
+        if(offset <= lastpage) {
+                /* Open the file. */
+                result = vfs_open(progname, O_RDONLY, 0, &vn);
+                if (result) {
+                        return result;
+                }
 
-        /* convert offset in bytes */
-        offset *= memsize;
+                /* handle the case in which we access the last page, in this case filesize
+                * is not equal to memsize 
+                */
+                if (filesize > memsize) {
+                        filesize = (lastpage == offset) ? filesize & ~PAGE_FRAME : memsize;
+                }
 
-        /* compute the start virtual address of the segment to be loaded */
-        start_seg = vaddr + offset;
+                /* convert offset in bytes */
+                offset *= memsize;
 
-        /* check if we are in the data segment, in this case take into
-         * account the offset due to the first segment inside the ELF file
-         */
-        if(vaddr == as->data_seg_start) {
-                offset += as->data_seg_offset;
-        }
+                /* compute the start virtual address of the segment to be loaded */
+                start_seg = vaddr + offset;
 
-        DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",
-              (unsigned long) filesize, (unsigned long) vaddr);
-                                                                               
-        iov.iov_ubase = (userptr_t)start_seg;
-        iov.iov_len = memsize;           // length of the memory space
-        u.uio_iov = &iov;
-        u.uio_iovcnt = 1;
-        u.uio_resid = filesize;          // amount to read from the file
-        u.uio_offset = offset;
-        u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
-        u.uio_rw = UIO_READ;
-        u.uio_space = as;
+                /* check if we are in the data segment, in this case take into
+                * account the offset due to the first segment inside the ELF file
+                * and the skew to compute the start virtual address
+                */
+                if(vaddr == as->data_seg_start) {
+                        offset += as->data_seg_offset;
+                        start_seg += as->data_seg_offset & ~PAGE_FRAME; 
+                }
 
-        result = VOP_READ(vn, &u);
-        if (result) {
+                DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",
+                (unsigned long) filesize, (unsigned long) vaddr);
+                                                                                
+                iov.iov_ubase = (userptr_t)start_seg;
+                iov.iov_len = memsize;           // length of the memory space
+                u.uio_iov = &iov;
+                u.uio_iovcnt = 1;
+                u.uio_resid = filesize;          // amount to read from the file
+                u.uio_offset = offset;
+                u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
+                u.uio_rw = UIO_READ;
+                u.uio_space = as;
+
+                result = VOP_READ(vn, &u);
+                if (result) {
+
+                        vfs_close(vn);
+                        return result;
+                }
+                if (u.uio_resid != 0) {
+                        /* short read; problem with executable? */
+                        vfs_close(vn);
+                        kprintf("ELF: short read on segment - file truncated?\n");
+                        return ENOEXEC;
+                }
 
                 vfs_close(vn);
-                return result;
+        } else {
+                result = 0;
         }
-        if (u.uio_resid != 0) {
-                /* short read; problem with executable? */
-                vfs_close(vn);
-                kprintf("ELF: short read on segment - file truncated?\n");
-                return ENOEXEC;
-        }
-
-        vfs_close(vn);
 
         /*
          * If memsize > filesize, the remaining space should be
@@ -273,9 +281,8 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
         /*assegno al processo corrente as*/
         //proc_setas(as); /*forse non è necessario perchè sono già nel processo as*/
         ras = as_prepare_load2(as);
-        
-        if(ras ==0)
-                kprintf("STRUCTURES MEMORY ALLOCATEDD! \n");
+
+        (void)ras;
 
         result = as_complete_load(as);                                       
         if (result) {
