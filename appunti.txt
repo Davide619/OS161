@@ -1,0 +1,33 @@
+programmi di test VM: huge, sort, matmult, ctest, triplehuge, triplemat, triplesort
+per diagnostica: zero, da lanciare dopo il programma di test (huge, palin, sort...)
+
+PROGRAMMI TESTATI:
+palin
+	senza modifica swap = OK con minimo 4 frame
+	con modifica swap   = OK con minimo 2 frame
+huge   
+	senza modifica swap = FAIL con 64 frame (assert swap file pieno)
+	con modifica swap   = OK con 10 frame
+sort    
+	senza modifica swap = OK con 50 frame
+	con modifica swap   = OK con 10 frame 
+matmult
+	senza modifica swap = OK con 60 frame 
+	con modifica swap   = OK con 10 frame
+ctest
+	senza modifica swap = FAIL con 64 frame (assert swap file pieno)
+	con modifica swap   = OK con 10 frame
+
+PROGRAMMI DA TESTARE:
+triplesort, triplemat, triplehuge (VEDERE COMMENTI NEI CODICI)
+
+PROBLEMI:
+- crash in caso di attivazione TLB replacement (più di 64 frame)
+- crash in caso di esecuzione di programmi diversi 
+  nella stessa sessione di utilizzo del kernel 
+  (se eseguo programma A, poi B il kernel crasha con B, 
+   ma se eseguo B dopo aver riavviato il kernel funziona)
+  -> di conseguenza non si riesce ad eseguire "zero" perché
+     va eseguito dopo il programma di test
+  -> FORSE E' NECESSARIO RESETTARE IL SISTEMA VM AL TERMINE
+     DI UN ESECUZIONE??

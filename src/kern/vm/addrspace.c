@@ -420,7 +420,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
         int flagRWX, load_from_elf = 0, off_fromELF;
         uint32_t pt_index,old_pt_index, last_index;
         struct addrspace *as;
-        off_t index_swapfile, page_in_swapfile;
+        off_t page_in_swapfile, page_out_swapfile;
         
         DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
 
@@ -479,10 +479,10 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
         /*check for an invalid entry in PT*/
 	if(as->pt[pt_index] == 0){
 		
-		index_swapfile = search_swapped_frame(faultaddress & PAGE_FRAME); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
+		page_in_swapfile = search_swapped_frame(faultaddress & PAGE_FRAME); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
 									da cercare nello swapfile. Ritorna 0 se non trova nulla oppure l'indice*/
 		/*Check if the searching was successful*/
-		if(index_swapfile == -1){
+		if(page_in_swapfile == -1){
 			load_from_elf = 1; /*frame out from swap file*/			/*<------variable to be declered (global or static)?*/
 		}
 		PageFaults_Disk();//Here we increment the counter for Page faults that will cause to load a page from ELF file or SWAP File
@@ -504,10 +504,15 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                 page_number = get_page_number(vbase1, as->entry_valid);
                         }
 
+                        /*check if the page is already in the swapfile*/
+                        page_out_swapfile = search_swapped_frame(page_number);
+                        /*if not, allocate a new page to perform swap out*/
+                        if(page_out_swapfile == -1) {
+                                page_out_swapfile = swap_alloc(page_number); 
+                        }
+
                         /*swap out*/
-                        page_in_swapfile = swap_alloc(page_number); // supponendo vbase1 indirizzo virtuale di partenza del primo segmento nell'elf
-                        /*La funzione "swap_alloc" vuole come parametro l'indirizzo virtuale della pagina da allocare nello swap*/
-                        ret_value = swap_pageout(page_number, page_in_swapfile);/*La funzione "swap_pageout" vuole:
+                        ret_value = swap_pageout(page_number, page_out_swapfile);/*La funzione "swap_pageout" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare nello swap file
 													SECONDO parametro --> offset corrispondente alla posizione di allocazione della pagina nello swap File*/
                         (void)ret_value;
@@ -594,7 +599,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				// }
                                 PageFaults_from_ELF(); //Here we increment the counter of Page Faults that caused a load froam ELF FILE
 			}else{		
-				ret_value = swap_pagein(faultaddress, index_swapfile);	/*Starting virtualaddress in memory as first parameter of the function
+				ret_value = swap_pagein(faultaddress, page_in_swapfile);	/*Starting virtualaddress in memory as first parameter of the function
 														(where i expect to find the virtual address that corresponds to physical one)*/
 														/*La funzione "swap_pagein" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare in memoria
@@ -663,7 +668,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 				// 	panic("ERROR load from ElfFile! the program is stopping...\n");
 				// }
 			}else{
-				ret_value = swap_pagein(faultaddress, index_swapfile);/*La funzione "swap_pagein" vuole:
+				ret_value = swap_pagein(faultaddress, page_in_swapfile);/*La funzione "swap_pagein" vuole:
 													PRIMO parametro --> l'indirizzo virtuale della pagina da portare in memoria
 													SECONDO parametro --> Posizione (offset) corrispondente alla relativa pagina nello swap File*/	
 				// if(ret_value ==0){

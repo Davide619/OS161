@@ -48,12 +48,14 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){ 
 
 //if i am here, i have no TLB space, so i use replace algorithm
 
+    kprintf("Start TLB Round Robin Replacement\n");
     ehi = faultaddress;
     paddr = flag ? paddr1 : paddr2;
     elo = paddr | TLBLO_DIRTY | TLBLO_VALID; 
 
     victim = tlb_get_rr_victim();
     tlb_write(ehi, elo, victim);
+    kprintf("End TLB Round Robin Replacement\n");
     TLB_Faults_with_Replace(); //TLB fault for which replcament is needed
     return 1; //returns 1 if replace algorithm is executed 
 }
@@ -64,9 +66,9 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){ 
 int tlb_get_rr_victim(void){
 	
 	int victim;
-	static unsigned int next_victim =0;
+	static int next_victim;
     victim = next_victim;
-	next_victim = (next_victim +1) % NUM_TLB;
+	next_victim = (next_victim + 1) % NUM_TLB;
 	return victim;
 
 }
