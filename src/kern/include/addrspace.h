@@ -39,7 +39,7 @@
 #include <types.h>
 #include "opt-syscall.h"
 
-#define NFRAMES 65
+#define NFRAMES 10
 #define STACKPAGES 18         /*lo stack ha un numero di pagine fisse*/
 
 struct vnode;
