@@ -9,4 +9,4 @@ vm_tlb.o: ../../vm/vm_tlb.c includelinks/mips/tlb.h ../../include/types.h \
  includelinks/kern/machine/setjmp.h ../../include/addrspace.h \
  ../../include/vm.h includelinks/machine/vm.h opt-syscall.h \
  ../../include/spl.h ../../include/clock.h ../../include/kern/time.h \
- ../../include/vm_tlb.h
+ ../../include/vm_tlb.h ../../include/vmstats.h

@@ -352,6 +352,7 @@ optfile    syscall vm/pt.c
 optfile    syscall vm/segments.c
 optfile    syscall vm/swapfile.c
 optfile    syscall vm/vm_tlb.c
+optfile	   syscall vm/vmstats.c
 
 
 

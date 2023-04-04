@@ -15,4 +15,4 @@ main.o: ../../main/main.c ../../include/types.h \
  ../../include/mainbus.h ../../include/vfs.h ../../include/device.h \
  ../../include/syscall.h ../../include/test.h ../../include/version.h \
  autoconf.h ../../include/hello.h ../../include/coremap.h \
- ../../include/swapfile.h
+ ../../include/swapfile.h ../../include/vmstats.h
