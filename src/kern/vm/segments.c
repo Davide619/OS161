@@ -84,7 +84,7 @@ load_page_fromElf(int offset, vaddr_t vaddr,
                         return result;
                 }
 
-                /* handle the case in which we access the last page, in this case filesize
+                /* Handle the case in which we access the last page, in this case filesize surely
                 * is not equal to memsize 
                 */
                 if (filesize > memsize) {
@@ -106,8 +106,7 @@ load_page_fromElf(int offset, vaddr_t vaddr,
                         start_seg += as->data_seg_offset & ~PAGE_FRAME; 
                 }
 
-                DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",
-                (unsigned long) filesize, (unsigned long) vaddr);
+                DEBUG(DB_EXEC, "ELF: Loading %lu bytes to 0x%lx\n",(unsigned long) filesize, (unsigned long) vaddr);
                                                                                 
                 iov.iov_ubase = (userptr_t)start_seg;
                 iov.iov_len = memsize;           // length of the memory space
