@@ -454,7 +454,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                         // }
 
                         /*PT update*/
-			as->pt[old_pt_index] = 0;
+			as->pt[old_pt_index] = 0; //invalidate old pt index
 			pt_update(as->pt, as->entry_valid, old_frame, NFRAMES, pt_index);
 			
 			
