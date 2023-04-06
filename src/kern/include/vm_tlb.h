@@ -11,7 +11,7 @@
 int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress);
 
 /*Round robin algorithm for victim entry*/
-int tlb_get_rr_victim(void);
+uint32_t tlb_get_rr_victim(void);
 
 /*Invalidation entries function*/
 int TLB_Invalidate(paddr_t paddr);

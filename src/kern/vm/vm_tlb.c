@@ -17,10 +17,10 @@
 #include <vmstats.h>
 
 /*FUNZIONE CHE AGGIUNGE UNA NEW ENTRY ALLA TLB*/
-int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){        /*paddr is the entrypoint from load_elf function*/
-    
-    int i, spl, victim;
-    uint32_t elo, ehi;
+int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){
+    int spl;
+    uint32_t i, elo, ehi, victim;
+    uint32_t dbflags = 0;
     paddr_t paddr;
 
     spl = splhigh();
@@ -48,25 +48,25 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){ 
 
 //if i am here, i have no TLB space, so i use replace algorithm
 
-    kprintf("Start TLB Round Robin Replacement\n");
     ehi = faultaddress;
     paddr = flag ? paddr1 : paddr2;
     elo = paddr | TLBLO_DIRTY | TLBLO_VALID; 
 
     victim = tlb_get_rr_victim();
+    DEBUG(DB_VM, "TLB Replacement: 0x%x -> 0x%x at location %d\n", faultaddress, paddr, victim);
     tlb_write(ehi, elo, victim);
-    kprintf("End TLB Round Robin Replacement\n");
-    TLB_Faults_with_Replace(); //TLB fault for which replcament is needed
+    splx(spl);
+    TLB_Faults_with_Replace(); //TLB fault for which replacement is needed
     return 1; //returns 1 if replace algorithm is executed 
 }
 
 
 
 /*FIFO TLB Algorithm*/
-int tlb_get_rr_victim(void){
+uint32_t tlb_get_rr_victim(void){
 	
-	int victim;
-	static int next_victim;
+	uint32_t victim;
+	static uint32_t next_victim;
     victim = next_victim;
 	next_victim = (next_victim + 1) % NUM_TLB;
 	return victim;
@@ -85,10 +85,11 @@ int TLB_Invalidate(paddr_t paddr)
         tlb_read(&ehi, &elo, i);
         if ((elo & TLBLO_PPAGE) == (paddr & TLBLO_PPAGE)) 
         {
-            tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);        
+            tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i); 
+            TLB_Invalidations(); //Here we count all the invalidations of TLB      
         }
     }
-    TLB_Invalidations(); //Here we count all the invalidations of TLB
+
     return 0;
 }
 

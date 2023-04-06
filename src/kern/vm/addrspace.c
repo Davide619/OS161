@@ -180,59 +180,6 @@ as_deactivate(void)
 
 
 
-/*
- * Set up a segment at virtual address VADDR of size MEMSIZE. The
- * segment in memory extends from VADDR up to (but not including)
- * VADDR+MEMSIZE.
- *
- * The READABLE, WRITEABLE, and EXECUTABLE flags are set if read,
- * write, or execute permission should be set on the segment. At the
- * moment, these are ignored. When you write the VM system, you may
- * want to implement them.
- */
-// int
-// as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
-// 		 int readable, int writeable, int executable)
-// {
-// 	size_t npages;
-
-// 	dumbvm_can_sleep();
-
-// 	/* Align the region. First, the base... */
-// 	sz += vaddr & ~(vaddr_t)PAGE_FRAME;
-// 	vaddr &= PAGE_FRAME;
-
-// 	/* ...and now the length. */
-// 	sz = (sz + PAGE_SIZE - 1) & PAGE_FRAME;
-
-// 	npages = sz / PAGE_SIZE;
-
-// 	/* We don't use these - all pages are read-write */
-// 	(void)readable;
-// 	(void)writeable;
-// 	(void)executable;
-
-// 	if (as->as_vbase1 == 0) {
-// 		as->as_vbase1 = vaddr;
-// 		as->as_npages1 = npages;
-// 		return 0;
-// 	}
-
-// 	if (as->as_vbase2 == 0) {
-// 		as->as_vbase2 = vaddr;
-// 		as->as_npages2 = npages;
-// 		return 0;
-// 	}
-
-// 	/*
-// 	 * Support for more than two regions is not available.
-// 	 */
-// 	kprintf("dumbvm: Warning: too many regions\n");
-// 	return ENOSYS;
-// }
- 
-
-
 int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offset, size_t filesize,
                  int readable, int writeable, int executable)
@@ -294,46 +241,6 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offs
         return ENOSYS;                                                                 
 
 }
-
-
-
-// static void as_zero_region(paddr_t paddr, unsigned npages)
-// {
-//         bzero((void *)PADDR_TO_KVADDR(paddr), npages * PAGE_SIZE);
-// }
-
-
-
-// int
-// as_prepare_load(struct addrspace *as)
-// {
-// 	KASSERT(as->as_pbase1 == 0);
-// 	KASSERT(as->as_pbase2 == 0);
-// 	KASSERT(as->as_stackpbase == 0);
-
-// 	dumbvm_can_sleep();
-
-// 	as->as_pbase1 = getppages(as->as_npages1);
-// 	if (as->as_pbase1 == 0) {
-// 		return ENOMEM;
-// 	}
-
-// 	as->as_pbase2 = getppages(as->as_npages2);
-// 	if (as->as_pbase2 == 0) {
-// 		return ENOMEM;
-// 	}
-
-// 	as->as_stackpbase = getppages(DUMBVM_STACKPAGES);
-// 	if (as->as_stackpbase == 0) {
-// 		return ENOMEM;
-// 	}
-
-// 	as_zero_region(as->as_pbase1, as->as_npages1);
-// 	as_zero_region(as->as_pbase2, as->as_npages2);
-// 	as_zero_region(as->as_stackpbase, DUMBVM_STACKPAGES);
-
-// 	return 0;
-// }
 
 
 
@@ -511,10 +418,30 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
                                 page_out_swapfile = swap_alloc(page_number); 
                         }
 
-                        /*swap out*/
-                        ret_value = swap_pageout(page_number, page_out_swapfile);/*La funzione "swap_pageout" vuole:
-													PRIMO parametro --> l'indirizzo virtuale della pagina da portare nello swap file
-													SECONDO parametro --> offset corrispondente alla posizione di allocazione della pagina nello swap File*/
+                        /*check if we are in a case of page fault where the page to be swapped out
+                         *is not present in the TLB, due to a previous TLB round-robin replacement:
+                         *if this case is not handled, the swap out operation does not succeed since
+                         *swap_io tries to access "page number" that does not exist inside the TLB,
+                         *so the TLB cannot translate "page number" in the corresponding frame
+                         */
+                        if(tlb_probe(page_number, 0) < 0) {
+                                uint32_t tmp_ehi, tmp_elo;
+
+                                /*always substitute temporarily the first location of the TLB
+                                 *with the page that we need to swap out, then perform the
+                                 *swapping; when we finish, we restore the previous content in
+                                 *the first location of the TLB*/
+                                tlb_read(&tmp_ehi, &tmp_elo, 0);
+                                tlb_write(page_number, old_frame | TLBLO_DIRTY | TLBLO_VALID, 0);
+                                /*swap out*/
+                                ret_value = swap_pageout(page_number, page_out_swapfile);
+                                tlb_write(tmp_ehi, tmp_elo, 0);
+                        } else {
+                                /*swap out*/
+                                ret_value = swap_pageout(page_number, page_out_swapfile);
+                        }
+
+
                         (void)ret_value;
                         (void)ret_TLB_value;
                         
@@ -534,11 +461,6 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			/*TLB update*/
 			/*carico la TLB con la nuova entry*/
 			ret_TLB_value = TLB_Invalidate(old_frame);
-			// if (ret_TLB_value == 0){
-			// 	kprintf("TLB invalidated!\n");
-			// }else{
-			// 	kprintf("TLB was NOT invalidated\n");
-			// }
 
 			ret_TLB_value = tlb_insert(old_frame, frame_number, 1,faultaddress); /*questa funzione chiama automaticamente TLBreplace se non trova spazio*/
 											/*PRIMO parametro --> indirizzo fisico della pagina che si vuole inserire
@@ -554,7 +476,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			
 
 			/* Clear page of memory to be replaced */
-			bzero((void*)(faultaddress & PAGE_FRAME), PAGE_SIZE);				
+			bzero((void*)(faultaddress & PAGE_FRAME), PAGE_SIZE);
 			
                         	
 					
