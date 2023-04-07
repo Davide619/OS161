@@ -10,9 +10,9 @@ huge
 	con modifica swap   = OK con 10 frame
 sort    
 	senza modifica swap = OK con 50 frame
-	con modifica swap   = OK con 10 frame 
+	con modifica swap   = OK con 10 frame
 matmult
-	senza modifica swap = OK con 60 frame 
+	senza modifica swap = OK con 60 frame
 	con modifica swap   = OK con 10 frame
 ctest
 	senza modifica swap = FAIL con 64 frame (assert swap file pieno)
@@ -22,7 +22,6 @@ PROGRAMMI DA TESTARE:
 triplesort, triplemat, triplehuge (VEDERE COMMENTI NEI CODICI)
 
 PROBLEMI:
-- crash in caso di attivazione TLB replacement (più di 64 frame)
 - crash in caso di esecuzione di programmi diversi 
   nella stessa sessione di utilizzo del kernel 
   (se eseguo programma A, poi B il kernel crasha con B, 

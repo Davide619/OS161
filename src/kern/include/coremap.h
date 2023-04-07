@@ -52,6 +52,6 @@ paddr_t ffl_pop(struct ffl ** ffl_pop);
 /* ffl_destroy(): function to destroy a ffl struct, it calls an internal deallocator
  *                that takes the ffl struct address and releases memory reserved to it.
  */
-void ffl_destroy(struct ffl * ffl_dest);
+void ffl_destroy(void);
 
 #endif /* _COREMAP_H_ */

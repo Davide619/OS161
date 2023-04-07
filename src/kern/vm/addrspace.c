@@ -127,11 +127,11 @@ void vm_can_sleep(void){
 void
 as_destroy(struct addrspace *as)
 {
-        /*
-         * Clean up as needed.
-         */
         vm_can_sleep();
 
+        kfree(as->entry_valid);
+        ffl_destroy();
+        pt_destroy(as->pt);
         kfree(as);
 }
 

@@ -61,17 +61,45 @@ sys_write(int fd, userptr_t buf_ptr, int size) {
 }
 
 
-void sys__exit(int status){   /*(int status)*/
-   struct addrspace *as = proc_getas();
+// void sys__exit(int status){   /*(int status)*/
+//    struct addrspace *as = proc_getas();
 
-   as_destroy(as);
+//    as_destroy(as);
  
-   thread_exit();
+//    thread_exit();
    
-   /* thread_exit() does not return, so we should never get here */
-   panic("return from thread_exit in sys_exit\n");
-   (void)status;
+//    /* thread_exit() does not return, so we should never get here */
+//    panic("return from thread_exit in sys_exit\n");
+//    (void)status;
   
+// }
+
+/*
+ * system calls for process management
+ */
+void
+sys__exit(int status)
+{
+#if OPT_WAITPID
+  struct proc *p = curproc;
+  p->p_status = status & 0xff; /* just lower 8 bits returned */
+  // proc_remthread(curthread);
+#if USE_SEMAPHORE_FOR_WAITPID
+  V(p->p_sem);
+#else
+  lock_acquire(p->p_lock);
+  cv_signal(p->p_cv);
+  lock_release(p->p_lock);
+#endif
+#else
+  /* get address space of current process and destroy */
+  struct addrspace *as = proc_getas();
+  as_destroy(as);
+#endif
+  thread_exit();
+
+  panic("thread_exit returned (should not happen)\n");
+  (void) status; // TODO: status handling
 }
 
 

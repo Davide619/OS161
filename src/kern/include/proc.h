@@ -43,6 +43,9 @@
 #include <segments.h>
 #endif
 
+#define OPT_WAITPID 1
+#define USE_SEMAPHORE_FOR_WAITPID 1
+
 struct addrspace;
 struct thread;
 struct vnode;
@@ -77,17 +80,15 @@ struct proc {
 
 	/* add more material here as needed */
 ////////////////////////////START ADDED///////////////////////////////////////////////
-// #if OPT_WAITPID
-//         /* G.Cabodi - 2019 - implement waitpid: synchro, and exit status */
-//         int p_status;                   /* status as obtained by exit() */
-//         pid_t p_pid;                    /* process pid */
-/* #if USE_SEMAPHORE_FOR_WAITPID
-	struct semaphore *p_sem;
-#else
-        struct cv *p_cv;
-        struct lock *p_lock;
-#endif
-#endif */
+	#if OPT_WAITPID
+		int p_status;                   /* status as obtained by exit() */
+	#if USE_SEMAPHORE_FOR_WAITPID
+		struct semaphore *p_sem;
+	#else
+		struct cv *p_cv;
+		struct lock *p_lock;
+	#endif
+	#endif 
 ////////////////////////////END ADDED///////////////////////////////////////////////
 
 };
@@ -118,7 +119,7 @@ struct addrspace *proc_setas(struct addrspace *);
 
 ////////////////////////////START ADDED///////////////////////////////////////////////
 /* wait for process termination, and return exit status */
-// int proc_wait(struct proc *proc);
+int proc_wait(struct proc *proc);
 // /* get proc from pid */
 // struct proc *proc_search_pid(pid_t pid);
 ////////////////////////////END ADDED///////////////////////////////////////////////

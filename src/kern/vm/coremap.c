@@ -60,13 +60,15 @@ void vm_bootstrap(void)         /*ADDED*/
  * we use start_frame to store the first physical address reserved
  */
 static paddr_t start_frame;
+static struct ffl * start_ffl;
 
 struct ffl * ffl_create(const uint8_t nframes)
 {
     struct ffl * new_ffl = kmalloc(sizeof(struct ffl) * nframes);
     if(new_ffl == NULL) return NULL;
 
-    for(int idx = 0; idx < nframes; idx++)
+    start_ffl = new_ffl;
+    for (int idx = 0; idx < nframes; idx++)
     {
         new_ffl[idx].prev = (idx != 0) ? &new_ffl[idx - 1] : NULL;
         new_ffl[idx].next = (idx != nframes - 1) ? &new_ffl[idx + 1] : NULL;
@@ -117,10 +119,10 @@ paddr_t ffl_pop(struct ffl ** ffl_pop)
     return fr_pop;
 }
 
-void ffl_destroy(struct ffl * ffl_dest)
+void ffl_destroy(void)
 {
-    //freeppages(start_frame); da rivedere ma non credo che quello che vuoi fare qui venga fatto da questa funzione 
-    kfree(ffl_dest);
+    freeppages(start_frame);
+    kfree(start_ffl);
 
     return;
 }

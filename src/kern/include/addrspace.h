@@ -37,7 +37,7 @@
 
 #include <vm.h>
 #include <types.h>
-#include "opt-syscall.h"
+#include <opt-syscall.h>
 
 #define NFRAMES 70
 #define STACKPAGES 18         /*lo stack ha un numero di pagine fisse*/
@@ -145,8 +145,6 @@ struct addrspace {
  */
 
 
-
-
 struct addrspace *as_create(void);
 //int               as_copy(struct addrspace *src, struct addrspace **ret);
 void              as_activate(void);
@@ -154,15 +152,8 @@ void              as_deactivate(void);
 void              as_destroy(struct addrspace *);
 
 
-
-
-/* int     as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
-                        int readable, int writeable, int executable); */
-
 int     as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t offset, size_t filesize,
                         int readable, int writeable, int executable);
-
-
 
 
 // #if !OPT_SYSCALL

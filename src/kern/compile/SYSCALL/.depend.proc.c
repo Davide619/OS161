@@ -8,4 +8,5 @@ proc.o: ../../proc/proc.c ../../include/types.h \
  includelinks/machine/current.h ../../include/thread.h \
  ../../include/array.h ../../include/lib.h opt-noasserts.h \
  ../../include/threadlist.h includelinks/machine/thread.h \
- ../../include/setjmp.h includelinks/kern/machine/setjmp.h
+ ../../include/setjmp.h includelinks/kern/machine/setjmp.h \
+ ../../include/synch.h

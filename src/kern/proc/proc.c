@@ -49,6 +49,10 @@
 #include <addrspace.h>
 #include <vnode.h>
 
+#if OPT_WAITPID
+#include <synch.h>
+#endif
+
 /////////////////////////////////START ADDED///////////////////////////////////////////
 // #if OPT_WAITPID
 // #include <synch.h>
@@ -183,6 +187,10 @@ proc_create(const char *name)
 	proc->p_cwd = NULL;
 
 	//////////////////////////////////START ADDED/////////////////////////////////////////
+	#if USE_SEMAPHORE_FOR_WAITPID
+	  proc->p_sem = sem_create(name, 0);
+	#endif
+
 	// proc_init_waitpid(proc,name);
 	//////////////////////////////////END ADDED/////////////////////////////////////////
 
@@ -273,6 +281,10 @@ proc_destroy(struct proc *proc)
 	spinlock_cleanup(&proc->p_lock);
 
 //////////////////////////////////START ADDED//////////////////////////////////////
+	#if USE_SEMAPHORE_FOR_WAITPID
+		sem_destroy(proc->p_sem);
+	#endif
+
 	// proc_end_waitpid(proc);
 //////////////////////////////////END ADDED//////////////////////////////////////
 
@@ -434,33 +446,32 @@ proc_setas(struct addrspace *newas)
 	return oldas;
 }
 //////////////////////////////START ADDED/////////////////////////////////////////
-        /* G.Cabodi - 2019 - support for waitpid */
-// int 
-// proc_wait(struct proc *proc)
-// {
-// #if OPT_WAITPID
-//         int return_status;
-//         /* NULL and kernel proc forbidden */
-// 	KASSERT(proc != NULL);
-// 	KASSERT(proc != kproc);
+int 
+proc_wait(struct proc *proc)
+{
+#if OPT_WAITPID
+        int return_status;
+        /* NULL and kernel proc forbidden */
+		KASSERT(proc != NULL);
+		KASSERT(proc != kproc);
 
-//         /* wait on semaphore or condition variable */ 
-// #if USE_SEMAPHORE_FOR_WAITPID
-//         P(proc->p_sem);
-// #else
-//         lock_acquire(proc->p_lock);
-//         cv_wait(proc->p_cv);
-//         lock_release(proc->p_lock);
-// #endif
-//         return_status = proc->p_status;
-//         proc_destroy(proc);
-//         return return_status;
-// #else
-//         /* this doesn't synchronize */ 
-//         (void)proc;
-//         return 0;
-// #endif
-// }
+        /* wait on semaphore or condition variable */ 
+#if USE_SEMAPHORE_FOR_WAITPID
+        P(proc->p_sem);
+#else
+        lock_acquire(proc->p_lock);
+        cv_wait(proc->p_cv);
+        lock_release(proc->p_lock);
+#endif
+        return_status = proc->p_status;
+        proc_destroy(proc);
+		return return_status;
+#else
+        /* this doesn't synchronize */ 
+        (void)proc;
+        return 0;
+#endif
+}
 //////////////////////////////END ADDED/////////////////////////////////////////
 
 //////////////////////////ADDED FROM OS ONLINE/////////////////////////////////
