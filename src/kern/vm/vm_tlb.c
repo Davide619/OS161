@@ -25,10 +25,8 @@ int tlb_insert(paddr_t paddr1, paddr_t paddr2, int flag, vaddr_t faultaddress){
 
     spl = splhigh();
 
-
     /*get the 20MSBs of the faultaddress*/
     faultaddress &= PAGE_FRAME;
-    
 // Look for an invalid entry on the TLB
     for (i=0; i<NUM_TLB; i++) {
         

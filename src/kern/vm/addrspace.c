@@ -323,7 +323,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 {
         vaddr_t vbase1, page_number, stackbase, stacktop;
         paddr_t frame_number, old_frame;
-        int ret_value, ret_TLB_value;
+        int ret_value, ret_TLB_value,ret_TLB_inval;
         int flagRWX, load_from_elf = 0, off_fromELF;
         uint32_t pt_index,old_pt_index, last_index;
         struct addrspace *as;
@@ -460,7 +460,13 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			
 			/*TLB update*/
 			/*carico la TLB con la nuova entry*/
-			ret_TLB_value = TLB_Invalidate(old_frame);
+			ret_TLB_inval = TLB_Invalidate(old_frame);
+                        
+                        // if (ret_TLB_inval == 0){
+			// 	kprintf("TLB entry succesfully Invalidated!\n");
+			// }else{
+			// 	kprintf("Error: TLB entry not Invalidated!!\n");
+			// }
 
 			ret_TLB_value = tlb_insert(old_frame, frame_number, 1,faultaddress); /*questa funzione chiama automaticamente TLBreplace se non trova spazio*/
 											/*PRIMO parametro --> indirizzo fisico della pagina che si vuole inserire
