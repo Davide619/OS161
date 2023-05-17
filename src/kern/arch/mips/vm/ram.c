@@ -90,7 +90,6 @@ ram_bootstrap(void)
 
 	/* ...then initialize alloc_size...
 	 */
-	bzero((void *) alloc_size, nframes);
 	start_frame = firstpaddr;
 
 	/* ...and mark the first page as allocated: we reserved space
@@ -192,6 +191,8 @@ ram_stealmem(unsigned long npages)
 		/* ...and evaluate the physical address to be returned */
 		paddr = start_frame + alloc_idx * PAGE_SIZE;
 	}
+
+	bzero((void *) PADDR_TO_KVADDR(paddr), size);
 
 	return paddr;
 }

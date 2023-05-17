@@ -29,6 +29,7 @@
 void        swap_bootstrap(void);
 off_t	 	swap_alloc(vaddr_t vaddr);
 void 		swap_free(off_t swapaddr);
+void        swap_clear(void);
 off_t       search_swapped_frame(vaddr_t vaddr);
 
 int		swap_pagein(vaddr_t vaddr, off_t swapaddr);

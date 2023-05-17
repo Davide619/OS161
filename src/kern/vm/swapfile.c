@@ -193,6 +193,7 @@ search_swapped_frame(vaddr_t vaddr)
 {
 
 	for(int i = swap_total_pages-1; i>=0; i--){
+		if(bitmap_isset(swapmap, i))
 			if(vaddr == p->addr[i])
 				return p->offset_swapfile[i];	/*returns the frame allocation address inside swapfile*/
 	}
@@ -230,6 +231,31 @@ swap_free(off_t swapaddr)		/*swapaddr è l'indirizzo della page sullo swap file 
 
 	lock_release(swaplock);
 }
+
+
+
+/*
+ * swap_clear: marks all the pages in the swapfile as unused.
+ *
+ * Synchronization: uses swaplock.
+ */
+void
+swap_clear(void)
+{
+	lock_acquire(swaplock);
+
+	for (unsigned int i = 0; i < swap_total_pages; i++) {
+		if (bitmap_isset(swapmap, i))
+			bitmap_unmark(swapmap, i);
+	}
+
+	swap_free_pages = swap_total_pages;
+	index_paddr = 0;
+
+	lock_release(swaplock);
+}
+
+
 
 /*
  * swap_io: Does one swap I/O. Panics on failure.

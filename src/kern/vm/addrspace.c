@@ -133,9 +133,8 @@ as_destroy(struct addrspace *as)
         ffl_destroy();
         pt_destroy(as->pt);
         kfree(as);
+        swap_clear();
 }
-
-
 
 void
 as_activate(void)
@@ -278,25 +277,6 @@ as_prepare_load2(struct addrspace *as)
         /*ENTRY_VALID allocation*/
         as->entry_valid = kmalloc(sizeof(uint32_t) * NFRAMES);
         PageFaults_Zeroed(NFRAMES); //Here we increment the counter of Page faults that caused a page replacement and so a zeroing of a frame
-			
-        // /* allocate the stack */
-        // as->padd_stack = getppages(STACKPAGES);
-        // if(as->padd_stack == 0){
-        //         kprintf("Warning: Stack allocation failed\n");
-        //         return ENOMEM;
-        // }
-        // /* initialize the stack*/
-        // as_zero_region(as->padd_stack, STACKPAGES);
-
-        // /*Frames allocations*/
-        // as->as_frames = getppages(NFRAMES);     //alloco un numero fisso di frames
-        // if (as->as_frames == 0) {
-        //         kprintf("Warning: Frames allocation failed\n");
-        //         return ENOMEM;          
-        // }
-
-
-        //as_zero_region(as->as_frames, NFRAMES);
 
         return 0;
 }
@@ -386,8 +366,8 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
         /*check for an invalid entry in PT*/
 	if(as->pt[pt_index] == 0){
 		
-		page_in_swapfile = search_swapped_frame(faultaddress & PAGE_FRAME); /*La funzione vuole come parametro l'indirizzo virtuale della pagina
-									da cercare nello swapfile. Ritorna 0 se non trova nulla oppure l'indice*/
+                /*Check if the page is already in the swapfile*/
+		page_in_swapfile = search_swapped_frame(faultaddress & PAGE_FRAME); 
 		/*Check if the searching was successful*/
 		if(page_in_swapfile == -1){
 			load_from_elf = 1; /*frame out from swap file*/			/*<------variable to be declered (global or static)?*/
@@ -461,14 +441,14 @@ int vm_fault(int faulttype, vaddr_t faultaddress)
 			/*TLB update*/
 			/*carico la TLB con la nuova entry*/
 			ret_TLB_inval = TLB_Invalidate(old_frame);
-                        
+                        (void) ret_TLB_inval;
                         // if (ret_TLB_inval == 0){
-			// 	kprintf("TLB entry succesfully Invalidated!\n");
-			// }else{
-			// 	kprintf("Error: TLB entry not Invalidated!!\n");
-			// }
+                        // 	kprintf("TLB entry succesfully Invalidated!\n");
+                        // }else{
+                        // 	kprintf("Error: TLB entry not Invalidated!!\n");
+                        // }
 
-			ret_TLB_value = tlb_insert(old_frame, frame_number, 1,faultaddress); /*questa funzione chiama automaticamente TLBreplace se non trova spazio*/
+                        ret_TLB_value = tlb_insert(old_frame, frame_number, 1,faultaddress); /*questa funzione chiama automaticamente TLBreplace se non trova spazio*/
 											/*PRIMO parametro --> indirizzo fisico della pagina che si vuole inserire
 											 SECONDO parametro --> indirizzo fisico della pagina che si vuole inserire
 											 TERZO parametro --> 0/1 decide quale dei due indirizzi fisici prendere
