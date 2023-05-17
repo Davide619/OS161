@@ -219,8 +219,8 @@ kmain(char *arguments)
 /*IN QUESTO MODO STO RENDENDO OPZIONALE QUESTA PARTE SOLO PER IL KERNEL SYSCALL. SE LANCIO UN ALTRO KERNEL
 AD ESEMPIO DUMBVM QUESTA PARTE NON VIENE PRESA E NON HO NESSUN ERRORE*/
 	#if OPT_SYSCALL
-		/*print hello on the main menu*/
-		hello();
+		// /*print hello on the main menu*/
+		// hello();
 		/*function that initialize my swapfile*/
 		swap_bootstrap();
 	#endif

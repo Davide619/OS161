@@ -100,20 +100,20 @@ swap_bootstrap(void)
 	VOP_STAT(swapstore, &st);										
 	
 
-	if (st.st_size < SWAP_SIZE) {												/*st.st_size is the size of the genereted file*/									
-		kprintf("swap: swapfile %s is only %lu bytes.\n", swapfilename,
-			(unsigned long) st.st_size);
-		kprintf("swap: Please extend it.\n");
-		kprintf("swap: Extended!\n");
-	}else{
-		kprintf("swap: swapfile %s is %lu bytes.\n", swapfilename,
-			(unsigned long) SWAP_SIZE);
-		kprintf("swap: i am adjusting it...\n");
-		kprintf("swap: Adjusted!\n");
-	}
+	// if (st.st_size < SWAP_SIZE) {												/*st.st_size is the size of the genereted file*/									
+	// 	kprintf("swap: swapfile %s is only %lu bytes.\n", swapfilename,
+	// 		(unsigned long) st.st_size);
+	// 	kprintf("swap: Please extend it.\n");
+	// 	kprintf("swap: Extended!\n");
+	// }else{
+	// 	kprintf("swap: swapfile %s is %lu bytes.\n", swapfilename,
+	// 		(unsigned long) SWAP_SIZE);
+	// 	kprintf("swap: i am adjusting it...\n");
+	// 	kprintf("swap: Adjusted!\n");
+	// }
 
-	kprintf("swap: Total number of possible loaded pages into the file: %lu\n",
-		(unsigned long) SWAP_SIZE / PAGE_SIZE);
+	// kprintf("swap: Total number of possible loaded pages into the file: %lu\n",
+	// 	(unsigned long) SWAP_SIZE / PAGE_SIZE);
 
 	swap_total_pages = SWAP_SIZE / PAGE_SIZE;				/*total number of pages in the swapfile*/
 	swap_free_pages = swap_total_pages;
@@ -193,11 +193,11 @@ search_swapped_frame(vaddr_t vaddr)
 {
 
 	for(int i = swap_total_pages-1; i>=0; i--){
-		if(vaddr == p->addr[i])
-			return p->offset_swapfile[i];	/*returns the frame allocation address inside swapfile*/
+			if(vaddr == p->addr[i])
+				return p->offset_swapfile[i];	/*returns the frame allocation address inside swapfile*/
 	}
 
-	return -1;		
+	return -1;
 }
 
 

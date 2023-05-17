@@ -15,45 +15,7 @@
 
 void vm_bootstrap(void)         /*ADDED*/
 {
-        // /*Computation of available free frames number in RAM*/
-        // int nRamFramesMAX = ((int)ram_getsize())/PAGE_SIZE;
-        // //*stack = kmalloc(sizeof(int)*nRamFrames);
-
-        // if(nRamframes > nRamFramesMAX){
-        //   kprintf("nRamFrames is higher than nRamFramesMAX. Change the number of Frames!\n");
-        //   return;
-        // }
-
-        // /*alloco il vettore freeRamFrame inizializzato a 0 (vuoto)*/
-        // freeRamFrames = kmalloc(sizeof(unsigned char)*nRamFrames);
-        // if (freeRamFrames==NULL) return; 
-        
-        /*alloco allocSize*/
-        // allocSize = kmalloc(sizeof(unsigned long)*nRamFrames);
-        // if (allocSize==NULL){
-        //         //reset to disable this vm management 
-        //         freeRamFrames = NULL; 
-        //         return;
-        // }
-
-        // /*alloco la struttura FreeFrameList*/
-        // as->freeFrameList = ffl_create(nRamFrames);
-        // if(as->freeFrameList == NULL){ 
-        //   kprintf("FreeFrameList structure is not allocated!\n");
-        //   return;
-        // }
-
-        // /*inizializzo la struttura*/
-        // ffl_init(&freeFrameList, nRamFrames);
-
-        // for (int i=0; i<nRamFrames; i++){
-        //         freeRamFrames[i] = (unsigned char)0;
-        //         allocSize[i] =0;
-        // }
-        
-        // spinlock_acquire(&freemem_lock);
-        // allocTableActive = 1;
-        // spinlock_release(&freemem_lock);
+    
 }
 
 /* in order to deallocate frames reserved for the user program,
@@ -80,9 +42,6 @@ struct ffl * ffl_create(const uint8_t nframes)
 void ffl_init(struct ffl ** ffl_init, uint8_t nframes)
 {
     paddr_t cur_frame = start_frame = getppages(nframes);
-
-    // initialize to zero the user program frames
-    bzero((void *)PADDR_TO_KVADDR(start_frame), nframes * PAGE_SIZE);
     
     (*ffl_init)->free_frame = cur_frame;
     while((*ffl_init)->next != NULL)
