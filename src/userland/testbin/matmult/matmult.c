@@ -56,16 +56,21 @@ int T[Dim][Dim][Dim];
 int
 main(void)
 {
-    int i, j, k, r;
+	printf("I will perform a stress test by computing a matrix multiplication!\n");
+	printf("Dimension of the matrices: 72x72.\n");
 
-    for (i = 0; i < Dim; i++)		/* first initialize the matrices */
+	int i, j, k, r;
+
+	for (i = 0; i < Dim; i++)		/* first initialize the matrices */
 	for (j = 0; j < Dim; j++) {
 	     A[i][j] = i;
 	     B[i][j] = j;
 	     C[i][j] = 0;
 	}
 
-    for (i = 0; i < Dim; i++)		/* then multiply them together */
+	printf("Matrix initialization: done!\n");
+
+	for (i = 0; i < Dim; i++)		/* then multiply them together */
 	for (j = 0; j < Dim; j++)
             for (k = 0; k < Dim; k++)
 		T[i][j][k] = A[i][k] * B[k][j];
@@ -79,12 +84,12 @@ main(void)
     for (i = 0; i < Dim; i++)
 	    r += C[i][i];
 
-    printf("matmult finished.\n");
-    printf("answer is: %d (should be %d)\n", r, RIGHT);
+    printf("Matmult finished.\n");
+    printf("Answer is: %d (should be %d)\n", r, RIGHT);
     if (r != RIGHT) {
 	    printf("FAILED\n");
 	    return 1;
     }
-    printf("Passed.\n");
+    printf("Passed!\n");
     return 0;
 }

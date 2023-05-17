@@ -36,6 +36,7 @@
  *    should survive this.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <err.h>
@@ -122,14 +123,18 @@ check(void)
 			     i, A[i], i+1, A[i+1]);
 		}
 	}
-	warnx("Passed.");
+	printf("Check done: passed!\n");
 }
 
 int
 main(void)
 {
+	printf("I will perform a quicksort operation on a large number of integers.\n");
+	printf("Size of the array: %u.\n", SIZE);
 	initarray();
+	printf("Array initialization: done.\n");
 	sort(A, SIZE);
+	printf("Array quicksort: done.\n");
 	check();
 	return 0;
 }

@@ -188,11 +188,11 @@ main(void)
 	for (start = palindrome; start <= end; start++, end--) {
 		putchar('.');
 		if (*start != *end) {
-			printf("NOT a palindrome\n");
+			printf("\nNOT a palindrome\n");
 			return 0;
 		}
 	}
 
-	printf("IS a palindrome\n");
+	printf("\nIS a palindrome\n");
 	return 0;
 }

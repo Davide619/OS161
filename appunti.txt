@@ -22,19 +22,4 @@ PROGRAMMI DA TESTARE:
 triplesort, triplemat, triplehuge (VEDERE COMMENTI NEI CODICI)
 
 PROBLEMI:
-- crash in caso di esecuzione di programmi diversi 
-  nella stessa sessione di utilizzo del kernel 
-  (se eseguo programma A, poi B il kernel crasha con B, 
-   ma se eseguo B dopo aver riavviato il kernel funziona)
-  -> di conseguenza non si riesce ad eseguire "zero" perché
-     va eseguito dopo il programma di test
-  -> FORSE E' NECESSARIO RESETTARE IL SISTEMA VM AL TERMINE
-     DI UN ESECUZIONE??
-
-
-DA CHIEDERE ALLA CONSULENZA:
--gestione dello swapfile (si può anche mettere una sola copia di ogni page e aggiornarla volta per volta?)
--approfondimento parametri statistiche
--problematiche correnti 
--esame, possibili modifiche presentazione, possibile data 
-
+-il kernel è stabile
