@@ -1,7 +1,7 @@
 # OS161
-## WILLIAM
-- in addrspace.c dentro la vm_fault, il debugger si blocca su pt_update, qualche errore
-  su questa funzione riporta il debugger ad eseguire la ffl_pop più volte, fino a quando
-  questa non si svuota richiamando l'algoritmo di page replacement; a questo punto nella
-  sezione sul page replacement, get_victim_frame manda in crash il kernel.
+## SUDDIVISIONE
+- **WILLIAM**: da slide 4 a slide 21
+- **DAVIDE**: da slide 22 a slide 37, da slide 57 a slide 60
+- **ALESSANDRO**: da slide 38 a slide 56
+
   
